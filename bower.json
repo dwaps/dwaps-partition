@@ -1,0 +1,14 @@
+{
+  "name": "dwaps-partition",
+  "version": "1.0.0",
+  "license": "GNU GPL 3",
+  "main": "./dist/dbp.js",
+  "ignore": [],
+  "dependencies": {
+    "vexflow": "^1.2.83",
+    "abdmob/x2js": "^1.2.0"
+  },
+  "homepage": "https://github.com/dwaps/dwaps-partition",
+  "_release": "1.0.0",
+  "_target": "^1.0.0"
+}

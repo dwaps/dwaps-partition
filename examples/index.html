@@ -1,0 +1,50 @@
+<!--
+  -- Auteur :   DWAPS Formation - Michael Cornillon
+  -- Mail :     contact@dwaps.fr
+  -- Tel :      0651279211
+  -- Site :     http://dwaps.fr, http://nolot.org
+  -- Date :     21/11/2016
+  -->
+
+<!DOCTYPE html>
+<html lang="fr">
+    <head>
+        <meta name="author" content="DWAPS Formation - Michael Cornillon">
+        <meta http-equiv="Content-Language" content="fr-FR">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1, maximum-scale=1, user-scalable=no, width=device-width">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <title>Test DWAPS partition</title>
+
+
+        <!-- VENDORS -->
+        <link href="lib/animate.css/animate.min.css" rel="stylesheet">
+        <script src="lib/angular/angular.js"></script>
+        <script src="lib/dwaps/modules/logs.js"></script>
+
+        <script src="../lib/vexflow/releases/vexflow-min.js"></script>
+        <script src="../lib/abdmob/x2js/xml2json.min.js"></script>
+
+
+        <!-- DWAPS partition -->
+        <script src="../dist/dbp.js"></script>
+
+        <!-- CUSTOM -->
+        <script src="js/app.js"></script>
+    </head>
+
+
+    <body ng-app="dwapsPartition" ng-controller="partCtrl">
+
+            <div
+                id="dwaps-viewer"
+                class="animated"
+                ng-show="start"
+                ng-class="{ fadeIn: start }"
+                >
+            </div>           
+
+    </body>
+</html>
