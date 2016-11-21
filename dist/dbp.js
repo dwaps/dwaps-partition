@@ -13,7 +13,10 @@
 
 	var options = {
 
-		angular: true,
+		use:
+		{
+			angular: true
+		},
 
 		canvas: {
 			width: window.innerWidth,
@@ -81,7 +84,7 @@
 
 
 
-	if( options.angular )
+	if( options.use.angular )
 	{
 		angular
 			.module( "DWAPS_BUILDER_PART", [] )
