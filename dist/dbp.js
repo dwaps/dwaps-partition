@@ -33,7 +33,7 @@
 
 		default: {
 			measureWidth: 500,
-			sidePadding: 20,
+			sidePadding: 10,
 			offsetY: 40,
 			time: "4/4",
 			responsive: true
@@ -135,9 +135,8 @@
 		;
 
 		this.initPart( JSONpart[ "score-partwise" ] );
-		this.initObject( options );
-		this.initCanvas( tag );
-		this.buildPart();
+
+		this.start( tag, options );
 	};
 
 
@@ -155,8 +154,10 @@
 			// this.options.help.articulations( VF );
 			// this.options.help.ornaments( VF );
 
-			// Gestion responsive ou non			
+			// Gestion responsive			
 			this.responsive = this.options.default.responsive;
+			this.NB_MAX_MEASURES = 2;
+			this.systemOk = true; // Vérifie si le système a son nb de mesures adapté à la taille d'écran
 
 			// TAILLE D'AFFICHAGE
 			this.widthViewer = this.responsive ? window.innerWidth : this.partition.infos.page.width;
@@ -194,7 +195,6 @@
 			this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
 			this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
 			this.indexFirstMeasureSystem = 0;
-			this.nbMeasures = 0; // Nb mesure dans la portee courante
 			this.mesWidth = []; // Tableau pour stocker toutes les largeurs des mesures de la portée courante
 			this.leftMargin = this.options.default.sidePadding; // Le système courant de la mesure a-t-il une marge de départ à respecter
 
@@ -265,23 +265,29 @@
 				;
 		},
 
+		start: function( tag, options )
+		{
+			if( options.default.responsive )
+			{
+				this.reload( tag, options );
+			}
+			else
+			{
+				this.initObject( options );
+				this.initCanvas( tag );
+				this.buildPart();
+			}
+		},
+
 		setOptions: function( options )
 		{
-			for( var i in options )
-			{
-				this.responsive = options.responsive;
-				console.log( this.responsive );
+			this.options = options;
+			// this.reload();
+		},
 
-				// this.initObject( options );
-				// this.initCanvas( tag );
-
-				// this.tag = "";
-				// this.initCanvas( this.tag );
-				// this.ctx.clearRect(0, 0, canvas.width, canvas.height);
-				// this.dynamicSizingMeasure();
-				// location.reload();
-				// this.buildPart();
-			}
+		getOptions: function()
+		{
+			return this.options;
 		},
 
 		initPart: function( JSONpart )
@@ -331,21 +337,83 @@
 			this.partition = partition;
 		},
 
-		resize: function()
+		// zoom: function( scale )
+		// {
+		// 	
+			// TEST DEPUIS UNE AUTRE FONCTION :
+			// var w = window.innerWidth, wp = this.partition.infos.page.width, value = 0;
+			// if( wp > w ) value = 1 - ( ( wp / w ) * 0.1 ) ;
+
+
+		// 	var transX = scale * 55;
+		// 	var transY = 0;
+
+		// 	console.log( transX );
+
+		// 	this.tag.setAttribute( "style", "\
+		// 		-webkit-transform: scale(" + scale + ") translate(-" + transX + "px);\
+		// 		-moz-transform: scale(" + scale + ") translate(-" + transX + "px);\
+		// 		-ms-transform: scale(" + scale + ") translate(-" + transX + "px);\
+		// 		-o-transform: scale(" + scale + ") translate(-" + transX + "px);\
+		// 		transform: scale(" + scale + ") translate(-" + transX + "px)\
+		// 		" );
+		// },
+
+		reload: function( tag, options )
 		{
-			console.log( "resizing..." );
+			if(
+				this.responsive
+				||
+				( this.options && this.options.default.responsive )
+				||
+				( options && options.default.responsive ) )
+			{
+				console.log( "reloading..." );
 
-			// this.WIDTH_PART = w;
-			// this.HEIGHT_VIEWER = h;
-			// 
-			// Recalculer la page partition en fonction de la largeur de l'écran !!!!!!!!!!!!!!!!
+				var wWindow = window.innerWidth;
 
 
-			this.initObject( this.options );
-			this.tag.innerHTML = "";
-			this.initCanvas( this.tag );
-			this.renderer.resize( window.innerWidth, window.innerHeight  );
-			this.buildPart();
+				// Si tag est défini alors this.tag n'existe pas encore
+				// car l'objet n'a pas encore été initialisé
+				if( tag && options )
+				{
+					this.initObject( options );
+					this.initCanvas( tag );
+				}
+				else
+				{
+					this.initObject( this.options );
+					this.tag.innerHTML = "";
+					this.initCanvas( this.tag );
+				}
+
+				// Calcul du nb de mesures max d'un système
+				// en fonction de la taille d'écran
+				if( wWindow <= 1024 )
+				{
+					if( wWindow <= 450 )
+						this.NB_MAX_MEASURES = 1;
+					else if( wWindow <= 700 )
+						this.NB_MAX_MEASURES = 2;
+					else if( wWindow <= 768 )
+						this.NB_MAX_MEASURES = 3;
+					else
+						this.NB_MAX_MEASURES = 4;
+
+					this.systemOk = false;
+				}
+				else
+				{
+					this.systemOk = true;
+				}
+
+				this.buildPart();
+			}
+			else
+			{
+				if( tag && options ) this.start( tag, options );
+			}
+
 		},
 
 		buildPart: function()
@@ -448,7 +516,7 @@
 				{
 					if( mesJSON.print[ "_new-system" ] == "yes" || mesJSON.print[ "_new-page" ] == "yes" )
 					{
-						console.log( "\nNOUVEAU SYSTEME (mesure : " + mesJSON._number + ")" );
+						// console.log( "\nNOUVEAU SYSTEME (mesure : " + mesJSON._number + ")" );
 
 						this.indexFirstMeasureSystem = parseInt( mesJSON._number ) - 1;
 
@@ -523,20 +591,26 @@
 						{
 							mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
 
-							if( m.clef ) mesure.addClef( m.clef );
-							if( m.chiffrage ) mesure.addTimeSignature( m.chiffrage );
-							// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+							if( m.firstOnNewSystem )
+							{
+								// ARMATURE
+								var armature = chargerArmature( THIS.armature, THIS );
+								if( armature ) mesure.addKeySignature( armature );
+								else mesure.addKeySignature( THIS.armature );
 
-							// ARMATURE
-							THIS.armature = chargerArmature( THIS.armature, THIS );
-							if( THIS.armature ) mesure.addKeySignature( THIS.armature );
+								if( m.clef ) mesure.addClef( m.clef );
+								else mesure.addClef( THIS.clef );
+
+								if( m.chiffrage ) mesure.addTimeSignature( m.chiffrage );
+								else mesure.addTimeSignature( THIS.chiffrage );
+
+								// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+							}
 
 							mesure
 								.setContext( THIS.ctx )
 								.draw()
 							;
-
-							// console.log( THIS.VF );
 						}
 					);
 				}
@@ -805,7 +879,7 @@
 
 			/////////////////////////////////////////////////////////////////////
 			// PARCOURS DE TOUTE LA PARTITION                                  //
-						// pour connaître la taille totale et les tailles de chaque mesure //
+			// pour connaître la taille totale et les tailles de chaque mesure //
 			/////////////////////////////////////////////////////////////////////
 
 
@@ -817,24 +891,33 @@
 				this.measures.push({});
 				this.measures[ i ].num = i+1;
 
-				if( mesXML.print &&
-									( mesXML.print[ "_new-system" ] == "yes"
-										||
-									mesXML.print[ "_new-page" ] == "yes" ) )
+
+
+				// Si le nombre de mesures est trop important
+				// il faut l'adapter
+				if( THIS.systemOk )
 				{
-					this.measures[ i ].firstOnNewSystem = true;
-					if( i != 0 )
+					if( mesXML.print &&
+										( mesXML.print[ "_new-system" ] == "yes"
+											||
+										mesXML.print[ "_new-page" ] == "yes" ) )
 					{
-						this.offsetY += 120;
-						this.measures[ i-1 ].lastOnOldSystem = true;
+						this.measures[ i ].firstOnNewSystem = true;
+						if( i != 0 )
+						{
+							this.offsetY += 120;
+							this.measures[ i-1 ].lastOnOldSystem = true;
+						} 
 					}
+
+					// Mise à jour de l'offsetY
+					this.measures[ i ].offsetY = this.offsetY;
 				}
 
-				// Mise à jour de l'offsetY
-				this.measures[ i ].offsetY = this.offsetY;
-
+				// Passage obligatoire !
+				// Meme si le système est redéfini
+				// (à tout moment le mode peut changer par exemple...)
 				this.loadAttributs( mesXML, this.measures[ i ] );
-
 
 				// La mesure a-telle une marge gauche spécifique ?
 				// (début de système)
@@ -869,44 +952,89 @@
 				mesXML = null;
 			}
 
+			// Si trop de mesures pour la taille d'écran
+			// on recalcule la taille et l'offset des mesures
+			// et leur nombre ne doit pas dépasser NB_MAX_MEASURES
+			if( !THIS.systemOk )
+			{
+				var cpt = 0, concatWidth = 0;
 
-			this.measures.forEach(
-				function( m, i )
+				for( var i = 0; i < allMesPart; i++)
 				{
-					if( !THIS.responsive )
+					if( i == 0 || ( cpt == this.NB_MAX_MEASURES && this.responsive ) )
 					{
-						var mesXML = THIS.partition.systeme.portee1[i];
+						this.measures[ i ].firstOnNewSystem = true;
 
-						if( m.firstOnNewSystem )
+						this.loadAttributs( false, this.measures[ i ] );
+
+						if( i != 0 )
 						{
-							// console.log( "\nNOUVEAU SYSTEME (numéro : " + (i+1) + ")" );
-
-							m.clef      = THIS.clef;
-							m.chiffrage = THIS.chiffrage;
-							m.armature  = THIS.armature;
-							m.mode      = THIS.mode;
+							this.measures[ i-1 ].lastOnOldSystem = true;
+							this.offsetY += 120;
 						}
 
-						m.width = parseInt( mesXML._width );
+						cpt = 0;
 					}
+
+					// Mise à jour de l'offsetY
+					this.measures[ i ].offsetY = this.offsetY;
+
+					// LARGEUR MESURE ET OFFSETX
+					this.measures[ i ].width = window.innerWidth / this.NB_MAX_MEASURES;
+
+					if( this.measures[ i ].firstOnNewSystem )
+						this.measures[ i ].offsetX = THIS.options.default.sidePadding;
 					else
-					{
-						if( m.firstOnNewSystem )
-						{
-							// console.log( "\nNOUVEAU SYSTEM ! (numéro " + (i+1) + ")" );
-							indexMes = 0;
-							numSys++;
+						this.measures[ i ].offsetX = concatWidth + THIS.options.default.sidePadding;
 
-							m.clef      = THIS.clef;
-							m.chiffrage = THIS.chiffrage;
-							m.armature  = THIS.armature;
-							m.mode      = THIS.mode;
+					concatWidth += this.measures[ i ].width;
+					cpt++;
+				}
+			}
+			else
+			{
+				this.measures.forEach(
+					function( m, i )
+					{
+						if( !THIS.responsive )
+						{
+							console.log( "Contruction systèmes non responsifs" );
+							var mesXML = THIS.partition.systeme.portee1[i];
+
+							if( m.firstOnNewSystem )
+							{
+								// console.log( "\nNOUVEAU SYSTEME (numéro : " + (i+1) + ")" );
+
+								m.clef      = THIS.clef;
+								m.chiffrage = THIS.chiffrage;
+								m.armature  = THIS.armature;
+								m.mode      = THIS.mode;
+							}
+
+							m.width = parseInt( mesXML._width );
+						}
+						else
+						{
+							console.log( "Contruction systèmes responsifs" );
+							if( m.firstOnNewSystem )
+							{
+								// console.log( "\nNOUVEAU SYSTEM ! (numéro " + (i+1) + ")" );
+								indexMes = 0;
+								numSys++;
+
+								m.clef      = THIS.clef;
+								m.chiffrage = THIS.chiffrage;
+								m.armature  = THIS.armature;
+								m.mode      = THIS.mode;
+							}
+
+							indexMes++;
 						}
 
-						indexMes++;
+						// console.log( m );
 					}
-				}
-			);
+				);
+			}
 
 			// Si mode responsive activé :
 			// calcul des largeurs des mesures en fonction de la taille de l'écran
@@ -916,6 +1044,9 @@
 
 			this.creerMesure( true );
 
+			// Le système a bien été calculé
+			this.systemOk = true;
+
 			THIS = null;
 			allMesPart = null;
 			numSys = null;
@@ -923,34 +1054,44 @@
 			indexMes = null;
 		},
 
-		loadAttributs: function( mesJSON, mes )
+		loadAttributs: function( mesXML, mes )
 		{
-			// SI LA MESURE A DES ATTRIBUTS (chiffrage, clef, armature)
-			if( mesJSON.attributes )
-			{
-				if( mesJSON.attributes.time ) 
+			// if( mesXML )
+			// {
+				// SI LA MESURE A DES ATTRIBUTS (chiffrage, clef, armature)
+				if( mesXML.attributes )
 				{
-					this.chiffrage = mesJSON.attributes.time.beats + "/" + mesJSON.attributes.time[ "beat-type" ];
-					mes.chiffrage = this.chiffrage;
-				}
-				if( mesJSON.attributes.clef ) 
-				{
-					this.clef = mesJSON.attributes.clef.sign == "G" ? this.CLE_SOL : this.CLE_FA;
-					mes.clef = this.clef;
-				}
-				if( mesJSON.attributes.key ) 
-				{
-					if( mesJSON.attributes.key.fifths ) 
+					if( mesXML.attributes.time ) 
 					{
-						this.armature = mesJSON.attributes.key.fifths;
-						mes.armature = this.armature;
+						this.chiffrage = mesXML.attributes.time.beats + "/" + mesXML.attributes.time[ "beat-type" ];
+						mes.chiffrage = this.chiffrage;
 					}
-					if( mesJSON.attributes.key.mode ) 
+					if( mesXML.attributes.clef ) 
 					{
-						this.mode = mesJSON.attributes.key.mode;
+						this.clef = mesXML.attributes.clef.sign == "G" ? this.CLE_SOL : this.CLE_FA;
+						mes.clef = this.clef;
+					}
+					if( mesXML.attributes.key ) 
+					{
+						if( mesXML.attributes.key.fifths ) 
+						{
+							this.armature = mesXML.attributes.key.fifths;
+							mes.armature = this.armature;
+						}
+						if( mesXML.attributes.key.mode ) 
+						{
+							this.mode = mesXML.attributes.key.mode;
+						}
 					}
 				}
-			}
+			// }
+			// else
+			// {
+			// 	mes.mode = this.mode;
+			// 	mes.clef = this.clef;
+			// 	mes.chiffrage = this.chiffrage;
+			// 	mes.armature = this.armature;
+			// }
 		},
 
 
@@ -964,7 +1105,6 @@
 				partSizeWithoutMargins = 0,
 				newWidthMargins = 0,
 
-				nbMeasures = 0,
 				mesure = null,
 				numSys = 1,
 				totalSizeCurrentSystem = 0,
@@ -980,9 +1120,9 @@
 			;
 
 
-			console.log( "Taille écran - marges : " + screenSizeWithoutMargins );
-			console.log( "Taille partition : " + partSize );
-						console.log( "\n" );
+			// console.log( "Taille écran - marges : " + screenSizeWithoutMargins );
+			// console.log( "Taille partition : " + partSize );
+						// console.log( "\n" );
 
 
 			this.measures.forEach(
@@ -1009,6 +1149,38 @@
 								break;
 						}
 
+						// // Si le nombre de mesures est trop important
+						// // il faut l'adapter
+						// if( !THIS.systemOk )
+						// {
+						// 	// Réinitialisation des firstOnNewSystem
+						// 	for( var j = m.num-1; j < THIS.measures.length; j++ )
+						// 	{
+						// 		if( THIS.measures[ j ].firstOnNewSystem )
+						// 		{
+						// 			if( THIS.measures[ j ].num != "1" )
+						// 				THIS.measures[ j ].firstOnNewSystem = false;
+						// 			console.log( THIS.measures[ j ] );
+						// 		}
+						// 	}
+
+
+						// 	var cpt = 0;
+						// 	for( var j = m.num-1; j < THIS.measures.length; j++ )
+						// 	{
+						// 		if( cpt == THIS.NB_MAX_MEASURES-1 )
+						// 		{
+						// 			console.log( "newSystem !" );
+						// 			console.log( "\n" );
+						// 			cpt = 0;
+						// 		}
+						// 		console.log( cpt )
+						// 		cpt++;
+						// 	}
+
+						// 	THIS.systemOk = true;
+						// 	console.log( "\n" );
+						// }
 
 						// // Calcul de la taille à répartir en addition à chaque mesure du système
 						// // (définie par les marges blanches de chaque côté de la partition originale)
@@ -1028,13 +1200,13 @@
 						// console.log( "Taille système courant : " + totalSizeCurrentSystem );
 						// console.log( "Marge système courant : " + specialLeftMargin );
 						// console.log( "Nouvelle marge : " + newSpecialMarginCurrentSys );
-						console.log( "\n" );
+						// console.log( "\n" );
 						// console.log( "Taille des marges à répartir : " + toAdd );
 						// console.log( "Taille de chaque mesure du système courant : " );
 						// console.log( "\t" + allCurrentSysMesWidth );
 
 
-						var cpt = 0, concatWidth = 0;
+						cpt = 0, concatWidth = 0;
 						for( var j = m.num-1; j < THIS.measures.length; j++ )
 						{
 							// pourcentage
@@ -1078,7 +1250,6 @@
 			partSize = null;
 			partSizeWithoutMargins = null;
 			newWidthMargins = null;
-			nbMeasures = null;
 			mesure = null;
 			totalSizeCurrentSystem = null;
 			allCurrentSysMesWidth = null,
