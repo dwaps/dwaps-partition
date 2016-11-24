@@ -171,7 +171,7 @@
 			// MODE
 			this.mode = "major"; // Valeur par défaut
 
-
+			// JEU
 			this.en = {
 				DOb: "Cb",
 				SOLb: "Bb",
@@ -418,6 +418,7 @@
 
 		buildPart: function()
 		{
+			var THIS = this;
 			// var ctx = this.renderer.ctx;
 
 			
@@ -486,7 +487,9 @@
 				tabWidth = [],
 				clef = null,
 				chiffrage = null,
-				armature = null
+				armature = null,
+				mode = null,
+				melodie = []
 			;
 
 			if( !this.responsive && mesJSON && cptMesure >= 0 ) // Premier appel à la construction de la mesure
@@ -565,9 +568,7 @@
 				mes.offsetX = this.offsetX;
 				mes.offsetY = this.offsetY;
 
-
 				this.creerMesure( mes );
-
 				return;
 			}
 
@@ -611,6 +612,12 @@
 								.setContext( THIS.ctx )
 								.draw()
 							;
+
+							genererPhrases(
+								THIS,
+								mesure,
+								THIS.partition.systeme.portee1[ i ]
+							);
 						}
 					);
 				}
@@ -633,28 +640,214 @@
 				}
 
 
-				// CREATION DE LA MELODIE DE LA MESURE
+				// FONCTION DE GENERATION DES PHRASES MELODIQUES
+				function genererPhrases( THIS, mesFromVF, mesFromPart )
+				{
+					var
+						notes = [],
+						phrases = {
+							soprano: [],
+							alto: [],
+							tenor: [],
+							basse: [],
+							sansVoix: []
+						}
+					;
 
-				// this.creerMelodieMesure(
-				// 	mesure,
-				// 	"4/4",
-				// 	this.voix.BASSE,
-				// 	[
-				// 		[
-				// 			[ this.note.LA, this.figure.NOIRE, 3 ],
-				// 			[ this.note.DO , this.figure.NOIRE, 4 ],
-				// 			[ this.note.FA , this.figure.NOIRE, 4 ]
-				// 		],
-				// 		[[ this.note.DO , this.figure.NOIRE, 4 ]],
-				// 		[[ this.note.RE, this.figure.BLANCHE, 5 ]]
-				// 	]
-				// );
+					// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
+					mesFromPart.note.forEach(
+						function( n, i )
+						{
+						// 	if( mesFromPart._number == "1" )
+						// 	{
+								notes.push({
+									voix: 	n.voice ? n.voice : "",
+									pos: 	n.pitch.octave ? n.pitch.octave : "",
+									figure: n.type ? n.type : "",
+									ton: 	n.pitch.step ? n.pitch.step : "",
+									hampe: 	n.stem ? n.stem : "",
+									paroles: []
+								});
+
+								if( n.lyric )
+								{
+									for( j = 0; j < n.lyric.length; j++)
+									{
+										if( n.lyric[ j ].text != "" )
+											notes[ i ].paroles.push( n.lyric[ j ].text );
+									}
+								}
+							// }
+						}
+					);
+
+					// AFFECTATION DES VOIX
+					// Chaque voix possède son groupe de notes
+					notes.forEach(
+						function( n, i )
+						{
+							parserNote( n );
+
+							switch( n.voix )
+							{
+								// case "" :
+								// 	phrases.soprano.push( n );
+								// 	break;
+								case "2" :
+									phrases.alto.push( n );
+									break;
+								case "1" :
+									phrases.tenor.push( n );
+									break;
+								// case "" :
+								// 	phrases.basse.push( n );
+								// 	break;
+								default:
+									phrases.sansVoix.push( n );
+									break;
+							}
+
+							for( var j in phrases )
+							{
+								if( phrases[ j ].length < (i+1) )
+									phrases[ j ].push(null);
+							}
+						}
+					);
+
+					if( mesFromPart._number == "1" )
+					{
+						console.log( phrases.soprano );
+						console.log( phrases.alto );
+						console.log( phrases.tenor );
+						console.log( phrases.basse );
+						console.log( "\n" );
+					}
+
+					// PARCOURS DES VOIX
+					for( var p in phrases )
+					{						
+						if( phrases.tenor.length > 0 )
+						{
+							var phrase = []; // Attention, cette phrase ne peut pas contenir d'accord pour le moment (il faudra coder ça !)
+
+							phrases.tenor.forEach(
+								function( n )
+								{
+									if( n )
+									{				
+										phrase.push([
+											[ n.ton, n.figure, parseInt( n.pos ) ]
+										]);
+									}
+								}
+							);
+
+							switch( p )
+							{
+								case "tenor":
+									THIS.creerMelodieMesure(
+										mesFromVF,
+										THIS.chiffrage,
+										THIS.voix.TENOR,
+										phrase
+									);
+									break;
+							}
+						}
+					}
+				}
+
+
+					// CREATION DE LA MELODIE DE LA MESURE
+
+					// THIS.creerMelodieMesure(
+					// 	mesure,
+					// 	"2/2",
+					// 	THIS.voix.BASSE,
+					// 	[
+					// 		[
+					// 			[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
+					// 			[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
+					// 			[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
+					// 		],
+					// 		[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
+					// 		[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
+					// 	]
+					// );
+
+
+				function parserNote( note )
+				{
+					if( note )
+					{
+						switch( note.figure )
+						{
+							// ATTENTION: ici, la figure ne tient pas encore compte du chiffrage !!!
+							case "half":
+								note.figure = THIS.figure.BLANCHE;
+								break;
+							case "quarter":
+								note.figure = THIS.figure.NOIRE;
+								break;
+						}
+
+						switch( note.ton )
+						{
+							case "C":
+								note.ton = THIS.note.DO;
+								break;							
+							case "D":
+								note.ton = THIS.note.RE;
+								break;	
+							case "E":
+								note.ton = THIS.note.MI;
+								break;	
+							case "F":
+								note.ton = THIS.note.FA;
+								break;	
+							case "G":
+								note.ton = THIS.note.SOL;
+								break;	
+							case "A":
+								note.ton = THIS.note.LA;
+								break;	
+							case "B":
+								note.ton = THIS.note.SI;
+								break;
+
+							// Notes pointées
+							// case "C":
+							// 	note.ton = THIS.note.DO_POINTEE;
+							// 	break;							
+							// case "D":
+							// 	note.ton = THIS.note.RE_POINTEE;
+							// 	break;	
+							// case "E":
+							// 	note.ton = THIS.note.MI_POINTEE;
+							// 	break;	
+							// case "F":
+							// 	note.ton = THIS.note.FA_POINTEE;
+							// 	break;	
+							// case "G":
+							// 	note.ton = THIS.note.SOL_POINTEE;
+							// 	break;	
+							// case "A":
+							// 	note.ton = THIS.note.LA_POINTEE;
+							// 	break;	
+							// case "B":
+							// 	note.ton = THIS.note.SI_POINTEE;
+							// 	break;
+						}
+					}
+				}
+
 			}
 
 
 			// FONCTIONS
 
-			function chargerArmature( armature, thisObj )
+			function chargerArmature( armature, THIS )
 			{
 				var bemol = armature.match( "-" ) ? true : false;
 
@@ -662,27 +855,28 @@
 
 				switch( armature )
 				{
-					case "1": armature = bemol ? thisObj.en.FA : thisObj.en.SOL; break;
-					case "2": armature = bemol ? thisObj.en.SIb : thisObj.en.RE; break;
-					case "3": armature = bemol ? thisObj.en.MIb : thisObj.en.LA; break;
-					case "4": armature = bemol ? thisObj.en.LAb : thisObj.en.MI; break;
-					case "5": armature = bemol ? thisObj.en.REb : thisObj.en.SI; break;
-					case "6": armature = bemol ? thisObj.en.SOLb : thisObj.en.FAd; break;
-					case "7": armature = bemol ? thisObj.en.DOb : thisObj.en.DOd; break;
-					default: armature = thisObj.mode == "major" ? thisObj.en.DO : thisObj.en.LAm;
+					case "1": armature = bemol ? THIS.en.FA : THIS.en.SOL; break;
+					case "2": armature = bemol ? THIS.en.SIb : THIS.en.RE; break;
+					case "3": armature = bemol ? THIS.en.MIb : THIS.en.LA; break;
+					case "4": armature = bemol ? THIS.en.LAb : THIS.en.MI; break;
+					case "5": armature = bemol ? THIS.en.REb : THIS.en.SI; break;
+					case "6": armature = bemol ? THIS.en.SOLb : THIS.en.FAd; break;
+					case "7": armature = bemol ? THIS.en.DOb : THIS.en.DOd; break;
+					default: armature = THIS.mode == "major" ? THIS.en.DO : THIS.en.LAm;
 				}
 
 				return armature;
 			}
 
-			mesure = null;
+
 			THIS = null;
 			width = null;
 			tabWidth = null;
-			mesure = null;
 			clef = null;
 			chiffrage = null;
 			armature = null;
+			mode = null;
+			melodie = null;
 		},
 
 
@@ -704,7 +898,7 @@
 			mesureWidth = null;
 		},
 
-		creerMelodieMesure: function( mesure, chiffrage, voice, notesAndPositions )
+		creerMelodieMesure: function( mesureVF, chiffrage, voice, notesAndPositions )
 		{
 			var melodie = [];
 			this.voix.ACTIVE = voice ? voice : this.voix.ACTIVE;
@@ -742,12 +936,15 @@
 				}
 			}
 
-			switch( chiffrage )
-			{
-				case "4/4": this.voices.push( new this.VF.Voice( { num_beats: 4, beat_value: 4 } ).addTickables( melodie ) );
-			}
+			var tab = chiffrage.split( "/" );
+			var num = parseInt( tab[0] );
+			var denom = parseInt( tab[1] );
 
-			this.VF.Formatter.FormatAndDraw( this.ctx, mesure.objVF, melodie );
+			this.voices.push(
+				new this.VF.Voice( { num_beats: num, beat_value: denom } ).addTickables( melodie )
+			);
+
+			this.VF.Formatter.FormatAndDraw( this.ctx, mesureVF, melodie );
 		},
 
 		creerNote: function( params )
@@ -998,12 +1195,12 @@
 					{
 						if( !THIS.responsive )
 						{
-							console.log( "Contruction systèmes non responsifs" );
 							var mesXML = THIS.partition.systeme.portee1[i];
 
 							if( m.firstOnNewSystem )
 							{
-								// console.log( "\nNOUVEAU SYSTEME (numéro : " + (i+1) + ")" );
+								numSys++;
+								console.log( "Système n°" + numSys + " (partition statique)" );
 
 								m.clef      = THIS.clef;
 								m.chiffrage = THIS.chiffrage;
@@ -1015,12 +1212,11 @@
 						}
 						else
 						{
-							console.log( "Contruction systèmes responsifs" );
 							if( m.firstOnNewSystem )
 							{
-								// console.log( "\nNOUVEAU SYSTEM ! (numéro " + (i+1) + ")" );
 								indexMes = 0;
 								numSys++;
+								console.log( "Système n°" + numSys + " (partition responsive)" );
 
 								m.clef      = THIS.clef;
 								m.chiffrage = THIS.chiffrage;
@@ -1049,7 +1245,6 @@
 
 			THIS = null;
 			allMesPart = null;
-			numSys = null;
 			mesWidth = null;
 			indexMes = null;
 		},
@@ -1106,7 +1301,6 @@
 				newWidthMargins = 0,
 
 				mesure = null,
-				numSys = 1,
 				totalSizeCurrentSystem = 0,
 				allCurrentSysMesWidth = [],
 				indexFirstMes = [],
@@ -1149,41 +1343,8 @@
 								break;
 						}
 
-						// // Si le nombre de mesures est trop important
-						// // il faut l'adapter
-						// if( !THIS.systemOk )
-						// {
-						// 	// Réinitialisation des firstOnNewSystem
-						// 	for( var j = m.num-1; j < THIS.measures.length; j++ )
-						// 	{
-						// 		if( THIS.measures[ j ].firstOnNewSystem )
-						// 		{
-						// 			if( THIS.measures[ j ].num != "1" )
-						// 				THIS.measures[ j ].firstOnNewSystem = false;
-						// 			console.log( THIS.measures[ j ] );
-						// 		}
-						// 	}
-
-
-						// 	var cpt = 0;
-						// 	for( var j = m.num-1; j < THIS.measures.length; j++ )
-						// 	{
-						// 		if( cpt == THIS.NB_MAX_MEASURES-1 )
-						// 		{
-						// 			console.log( "newSystem !" );
-						// 			console.log( "\n" );
-						// 			cpt = 0;
-						// 		}
-						// 		console.log( cpt )
-						// 		cpt++;
-						// 	}
-
-						// 	THIS.systemOk = true;
-						// 	console.log( "\n" );
-						// }
-
-						// // Calcul de la taille à répartir en addition à chaque mesure du système
-						// // (définie par les marges blanches de chaque côté de la partition originale)
+						// Calcul de la taille à répartir en addition à chaque mesure du système
+						// (définie par les marges blanches de chaque côté de la partition originale)
 						toAdd = (newSpecialMarginCurrentSys != 0) ? newSpecialMarginCurrentSys / allCurrentSysMesWidth.length : 0;		
 
 						partSizeWithoutMargins = partSize - totalSizeCurrentSystem - specialLeftMargin;
@@ -1209,7 +1370,7 @@
 						cpt = 0, concatWidth = 0;
 						for( var j = m.num-1; j < THIS.measures.length; j++ )
 						{
-							// pourcentage
+							// pourcentage de la mesure dans la partition originale
 							p = THIS.calculPercent( true, allCurrentSysMesWidth[ cpt ], THIS.partition.infos.page.width );
 							// console.log( "\tPourcentage mes " + (j+1) + " : " + p );
 
