@@ -769,25 +769,6 @@
 				}
 			}
 
-
-				// CREATION DE LA MELODIE DE LA MESURE
-
-				// THIS.creerMelodieMesure(
-				// 	mesure,
-				// 	"2/2",
-				// 	THIS.voix.BASSE,
-				// 	[
-				// 		[
-				// 			[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
-				// 			[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
-				// 			[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
-				// 		],
-				// 		[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
-				// 		[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
-				// 	]
-				// );
-
-
 			function parserNote( note )
 			{
 				if( note )
@@ -1044,6 +1025,23 @@
 				}
 			}
 
+			// CREATION DE LA MELODIE DE LA MESURE
+
+			// THIS.creerMelodieMesure(
+			// 	mesure,
+			// 	"2/2",
+			// 	THIS.voix.BASSE,
+			// 	[
+			// 		[
+			// 			[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
+			// 			[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
+			// 			[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
+			// 		],
+			// 		[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
+			// 		[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
+			// 	]
+			// );
+
 
 			THIS = null;
 			width = null;
@@ -1137,47 +1135,14 @@
 				params.notes.forEach(
 					function( n )
 					{
-						// Vérification avant génération de note
-						switch( n[0] )
+						if( n[0].match( "\\\." ) )
 						{
-							case THIS.note.DO_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.RE_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.MI_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.FA_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.SOL_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.LA_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							case THIS.note.SI_POINTEE:
-								n = THIS.splitPoint( n );
-								positionsDot.push( cpt++ );
-								hasDot = true;
-								break;
-							default:
-								cpt++;
+							n = THIS.splitPoint( n );
+							positionsDot.push( cpt++ );
+							hasDot = true;
 						}
+						else
+							cpt++;
 
 						notes.push( THIS.genererNote( n ) );
 					}
