@@ -36,7 +36,7 @@
 			sidePadding: 10,
 			offsetY: 40,
 			time: "4/4",
-			responsive: true
+			responsive: false
 		},
 
 		help:
@@ -191,6 +191,11 @@
 			};
 
 			// MESURE
+			this.NB_PORTEES_SYSTEME = 1;
+
+			if( this.partition && this.partition.systeme.portee2 )
+				this.NB_PORTEES_SYSTEME = 2;
+
 			this.measures = [];
 			this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
 			this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
@@ -573,8 +578,9 @@
 				return;
 			}
 
-
-			else // Deuxième appel (récursion) : on peut désormais affecter la mélodie
+			 // Deuxième appel (récursion) : création de la mesure VF
+			 // ou premier appel : création de la mesure VF
+			else
 			{
 				if( parseInt( mesJSON.offsetX )  )  offsetX = mesJSON.offsetX;
 				if( parseInt( mesJSON.offsetY )  )  offsetY = mesJSON.offsetY;
@@ -596,15 +602,17 @@
 							if( m.firstOnNewSystem )
 							{
 								// ARMATURE
-								var armature = chargerArmature( THIS.armature, THIS );
-								if( armature ) mesure.addKeySignature( armature );
-								else mesure.addKeySignature( THIS.armature );
+								armature = chargerArmature( THIS.armature, THIS );
+								if( !armature ) armature = THIS.armature;
+								mesure.addKeySignature( armature );
 
-								if( m.clef ) mesure.addClef( m.clef );
-								else mesure.addClef( THIS.clef );
+								clef = m.clef;
+								if( !clef ) clef = THIS.clef;
+								mesure.addClef( clef );
 
-								if( m.chiffrage ) mesure.addTimeSignature( m.chiffrage );
-								else mesure.addTimeSignature( THIS.chiffrage );
+								chiffrage = m.chiffrage;
+								if( !chiffrage ) chiffrage = THIS.chiffrage;
+								mesure.addTimeSignature( chiffrage );
 
 								// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
 							}
@@ -619,6 +627,12 @@
 								mesure,
 								THIS.partition.systeme.portee1[ i ]
 							);
+
+
+							if( THIS.NB_PORTEES_SYSTEME == 2 )
+							{
+								genererPortee2( m, armature, clef, chiffrage );
+							}
 						}
 					);
 				}
@@ -639,6 +653,9 @@
 						.draw()
 					;
 				}
+
+				console.log( "Objet VF :" );
+				console.log( this.VF );
 			}
 
 
@@ -665,6 +682,29 @@
 				return armature;
 			}
 
+			function genererPortee2( mesEnCours, armature, clef, chiffrage )
+			{
+				console.log( "La prochaine mesure débute un autre système" );
+
+				mesure = new THIS.VF.Stave(
+								mesEnCours.offsetX,
+								mesEnCours.offsetY + 100,
+								mesEnCours.width
+				);
+
+				if( mesEnCours.firstOnNewSystem )
+				{
+					mesure.addKeySignature( armature );
+					mesure.addClef( THIS.CLE_FA );
+					mesure.addTimeSignature( chiffrage );
+				}
+
+				mesure
+					.setContext( THIS.ctx )
+					.draw()
+				;
+			}
+
 			function genererPhrases( THIS, mesFromVF, mesFromPart )
 			{
 				var
@@ -682,8 +722,8 @@
 				mesFromPart.note.forEach(
 					function( n, i )
 					{
-						if( mesFromPart._number == "4" )
-						{
+						// if( mesFromPart._number == "5" )
+						// {
 							notes.push({
 								voix: 	n.voice ? n.voice : "",
 								pos: 	n.pitch.octave ? parseInt( n.pitch.octave ) : "",
@@ -702,25 +742,25 @@
 										notes[ i ].paroles.push( n.lyric[ j ].text );
 								}
 							}
-						}
+						// }
 					}
 				);
 
 				// AFFECTATION DES VOIX
 				// Chaque voix possède son groupe de notes
 
-				var longestTab = [];
+				var longestTabIndex = 0;
 
 				notes.forEach(
 					function( n, i )
 					{
 						parserNote( n );
-						chargerVoix( mesFromPart, n, i, phrases, longestTab )
+						longestTabIndex = chargerVoix( mesFromPart, n, i, phrases, longestTabIndex );
 					}
 				);
 
 				// LOG
-				// if( mesFromPart._number == "4" )
+				// if( mesFromPart._number == "1" )
 				// {
 				// 	console.log( phrases.soprano );
 				// 	console.log( phrases.alto );
@@ -732,39 +772,35 @@
 
 				// PARCOURS DES VOIX
 				for( var p in phrases )
-				{						
-					if( phrases.tenor.length > 0 )
+				{
+					var
+						phraseSoprano = [],
+						phraseAlto = [],
+						phraseTenor = [],
+						phraseBasse = []
+					;
+
+					switch( p )
 					{
-						var
-							phraseSoprano = [],
-							phraseAlto = [],
-							phraseTenor = [],
-							phraseBasse = []
-						;
+						case "soprano":
+							agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
+							genererMelodie( mesFromVF, THIS.voix.SOPRANO, phraseSoprano );
+							break;
+						case "alto":
+							agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
+							genererMelodie( mesFromVF, THIS.voix.ALTO, phraseAlto );
+							break;
+						case "tenor":
+							agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
+							genererMelodie( mesFromVF, THIS.voix.TENOR, phraseTenor );
+							break;
+						case "basse": // Attention : générer portée du dessous !!!
+							agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
+							genererMelodie( mesFromVF, THIS.voix.BASSE, phraseBasse );
+							break;
 
-						agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
-						agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
-						agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
-						agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
-
-						switch( p )
-						{
-							case "soprano":
-								genererMelodie( mesFromVF, THIS.voix.SOPRANO, phraseSoprano );
-								break;
-							case "alto":
-								genererMelodie( mesFromVF, THIS.voix.ALTO, phraseAlto );
-								break;
-							case "tenor":
-								genererMelodie( mesFromVF, THIS.voix.TENOR, phraseTenor );
-								break;
-							case "basse": // Attention : générer portée du dessous !!!
-								genererMelodie( mesFromVF, THIS.voix.BASSE, phraseBasse );
-								break;
-
-							case "sansVoix":
-								break;
-						}
+						case "sansVoix":
+							break;
 					}
 				}
 			}
@@ -834,142 +870,52 @@
 				}
 			}
 
-			function agencementNotes( notesVoix, notesSansVoix, phrase )
+			function chargerVoix( mesure, note, index, phrases, longestTabIndex )
 			{
-				var noteBefore = [], noteAfter = [];
-
-
-				notesVoix.forEach(
-					function( n, i )
+				// Si la note courante a le même offset que la précédente
+				// (et appartient à une voix différente), il faut les aligner verticalement...
+				if( index > 0 && mesure.note[ index-1 ][ "_default-x" ] == note.offsetX )
+				{
+					if( longestTabIndex > 0 )
 					{
-						if( n )
+						switch( note.voix )
 						{
-							if( notesSansVoix[ i ] )
-							{
-								// tri des notes pour l'implémentation VF
-
-								// ORDRE VF :
-								// Do > SI
-								// 1 > ...
-								if( notesSansVoix[ i ].pos > n.pos )
-								{
-									noteBefore.push(
-										n.ton,
-										n.figure,
-										n.pos
-									);
-									noteAfter.push(
-										notesSansVoix[ i ].ton,
-										notesSansVoix[ i ].figure,
-										notesSansVoix[ i ].pos
-									);
-								}
-								else if( notesSansVoix[ i ].pos == n.pos )
-								{
-									var
-										ascendance = [ "c", "d", "e", "f", "g", "a", "b" ],
-										cpt1 = -1,
-										cpt2 = -1
-									;
-
-									// Parcours des 7 notes sans altérations
-									for( var j = 0; j < 7; j++ )
-									{
-										if( n.ton == ascendance[ j ] ) cpt1 = j;
-										if( notesSansVoix[ i ].ton == ascendance[ j ] ) cpt2 = j;
-
-										if( cpt1 > -1 && cpt2 > -1 )
-										{
-											if( cpt1 > cpt2 )
-											{
-												noteBefore.push(
-													n.ton,
-													n.figure,
-													n.pos,
-													n.hampe
-												);
-												noteAfter.push(
-													notesSansVoix[ i ].ton,
-													notesSansVoix[ i ].figure,
-													notesSansVoix[ i ].pos,
-													notesSansVoix[ i ].hampe
-												);
-											}
-											else
-											{
-												noteBefore.push(
-													n.ton,
-													n.figure,
-													n.pos,
-													n.hampe
-												);
-												noteAfter.push(
-													notesSansVoix[ i ].ton,
-													notesSansVoix[ i ].figure,
-													notesSansVoix[ i ].pos,
-													notesSansVoix[ i ].hampe
-												);
-											}
-										}
-									}
-								}
-								else
-								{
-									noteBefore.push(
-										notesSansVoix[ i ].ton,
-										notesSansVoix[ i ].figure,
-										notesSansVoix[ i ].pos,
-										notesSansVoix[ i ].hampe
-									);
-
-									noteAfter.push(
-										n.ton,
-										n.figure,
-										n.pos,
-										n.hampe
-									);
-								}
-
-
-								// Intervalle (pas un accord !)
-								// --> prévoir en plus le cas d'un accord !
-								phrase.push( [ noteBefore, noteAfter ] );
-							}
-							else
-							{
-								phrase.push([
-									[ n.ton, n.figure, n.pos, n.hampe ]
-								]);
-							}
+							// case "" :
+							// 	phrases.soprano[ longestTabIndex-1 ] = note;
+							// 	break;
+							case "2" :
+								phrases.alto[ longestTabIndex-1 ] = note;
+								break;
+							case "1" :
+								phrases.tenor[ longestTabIndex-1 ] = note;
+								break;
+							// case "" :
+							// 	phrases.basse[ longestTabIndex-1 ] = note;
+							// 	break;
+							default:
+								phrases.sansVoix[ longestTabIndex-1 ] = note;
 						}
 					}
-				);
-			}
-
-			function chargerVoix( mesure, note, index, phrases, longestTab )
-			{
-				// Si la note sur la partition a le même offset que la précédente
-				// d'une voix différente, il faut les aligner verticalement...
-				if( index-1 >= 0 && mesure.note[ index-1 ][ "_default-x" ] == note.offsetX )
-				{
-					switch( note.voix )
+					else
 					{
-						// case "" :
-						// 	phrases.soprano[ longestTab.length-1 ] = note;
-						// 	break;
-						case "2" :
-							phrases.alto[ longestTab.length-1 ] = note;
-							break;
-						case "1" :
-							phrases.tenor[ longestTab.length-1 ] = note;
-							break;
-						// case "" :
-						// 	phrases.basse[ longestTab.length-1 ] = note;
-						// 	break;
-						default:
-							phrases.sansVoix[ longestTab.length-1 ] = note;
-							break;
-					}
+						switch( note.voix )
+						{
+							// case "" :
+							// 	phrases.soprano[ 0 ] = note;
+							// 	break;
+							case "2" :
+								phrases.alto[ 0 ] = note;
+								break;
+							case "1" :
+								phrases.tenor[ 0 ] = note;
+								break;
+							// case "" :
+							// 	phrases.basse[ 0 ] = note;
+							// 	break;
+							default:
+								phrases.sansVoix[ 0 ] = note;
+						}
+					}			
 				}
 				else
 				{
@@ -989,21 +935,144 @@
 						// 	break;
 						default:
 							phrases.sansVoix.push( note );
-							break;
 					}
 
+					// Récupération index voix la plus longue...
 					for( var j in phrases )
 					{
-						if( longestTab.length < phrases[ j ].length )
-							longestTab = phrases[ j ];
+						if( longestTabIndex < phrases[ j ].length )
+							longestTabIndex = phrases[ j ].length;
 					}
 
+					// ... pour que toutes les voix gardent toujours la même taille
+					// ( => répatition uniforme des notes)
 					for( var j in phrases )
 					{
-						if( phrases[ j ].length < longestTab.length )
+						if( phrases[ j ].length < longestTabIndex )
 							phrases[ j ].push( null );
 					}
 				}
+
+				return longestTabIndex;
+			}
+
+			function agencementNotes( notesVoix, notesSansVoix, phrase )
+			{
+				notesVoix.forEach(
+					function( n, i )
+					{
+						if( n )
+						{
+							if( notesSansVoix[ i ] && notesSansVoix[ i ].offsetX == n.offsetX )
+							{
+								var noteBefore = {}, noteAfter = {};
+
+								// tri des notes pour l'implémentation VF
+
+								// ordre ascendant géré sans erreur par VF (exemple) :
+								// note pos
+								// FA 3
+								// DO 4
+								// RE 4
+								// DO 5
+								if( notesSansVoix[ i ].pos > n.pos )
+								{
+									noteBefore = {
+										ton: 	n.ton,
+										figure: n.figure,
+										pos: 	n.pos,
+										hampe: 	n.hampe
+									};
+									noteAfter = {
+										ton: 	notesSansVoix[ i ].ton,
+										figure: notesSansVoix[ i ].figure,
+										pos: 	notesSansVoix[ i ].pos,
+										hampe: 	notesSansVoix[ i ].hampe
+									};
+								}
+								else if( notesSansVoix[ i ].pos == n.pos )
+								{
+									var
+										ascendance = [ "c", "d", "e", "f", "g", "a", "b" ],
+										cpt1 = -1,
+										cpt2 = -1
+									;
+
+									// Boucle x7 : notes gamme de do
+									for( var j = 0; j < 7; j++ )
+									{
+										if( n.ton == ascendance[ j ] ) cpt1 = j;
+										if( notesSansVoix[ i ].ton == ascendance[ j ] ) cpt2 = j;
+									}
+
+									if( cpt1 > -1 && cpt2 > -1 )
+									{
+										if( cpt1 > cpt2 )
+										{
+											noteBefore = {
+												ton: 	notesSansVoix[ i ].ton,
+												figure: notesSansVoix[ i ].figure,
+												pos: 	notesSansVoix[ i ].pos,
+												hampe: 	notesSansVoix[ i ].hampe
+											};
+											noteAfter = {
+												ton: 	n.ton,
+												figure: n.figure,
+												pos: 	n.pos,
+												hampe: 	n.hampe
+											};
+										}
+										else
+										{
+											noteBefore = {
+												ton: 	n.ton,
+												figure: n.figure,
+												pos: 	n.pos,
+												hampe: 	n.hampe
+											};
+											noteAfter = {
+												ton: 	notesSansVoix[ i ].ton,
+												figure: notesSansVoix[ i ].figure,
+												pos: 	notesSansVoix[ i ].pos,
+												hampe: 	notesSansVoix[ i ].hampe
+											};
+										}
+									}
+								}
+								else
+								{
+									noteBefore = {
+										ton: 	notesSansVoix[ i ].ton,
+										figure: notesSansVoix[ i ].figure,
+										pos: 	notesSansVoix[ i ].pos,
+										hampe: 	notesSansVoix[ i ].hampe
+									};
+
+									noteAfter = {
+										ton: 	n.ton,
+										figure: n.figure,
+										pos: 	n.pos,
+										hampe: 	n.hampe
+									};
+								}
+
+
+								// Intervalle (pas un accord !)
+								// --> prévoir en plus le cas d'un accord !
+								phrase.push([
+									[ noteBefore.ton, noteBefore.figure, noteBefore.pos, noteBefore.hampe ],
+									[ noteAfter.ton, noteAfter.figure, noteAfter.pos, noteAfter.hampe ]
+								]);
+							}
+							else
+							{
+								phrase.push([
+									[ n.ton, n.figure, n.pos, n.hampe ]
+								]);
+							}
+						}
+					}
+				);
 			}
 
 			function genererMelodie( mes, voix, phrase )
@@ -1031,15 +1100,15 @@
 			// 	mesure,
 			// 	"2/2",
 			// 	THIS.voix.BASSE,
-			// 	[
-			// 		[
-			// 			[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
-			// 			[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
-			// 			[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
-			// 		],
-			// 		[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
-			// 		[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
-			// 	]
+				// [
+				// 	[
+				// 		[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
+				// 		[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
+				// 		[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
+				// 	],
+				// 	[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
+				// 	[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
+				// ]
 			// );
 
 
@@ -1092,6 +1161,7 @@
 				}
 			}
 
+			//
 			var tab = chiffrage.split( "/" );
 			var num = parseInt( tab[0] );
 			var denom = parseInt( tab[1] );
@@ -1106,11 +1176,11 @@
 		creerNote: function( params )
 		{
 			var
-				measureType = this.CLE_SOL,
+				measureType = this.CLE_SOL, // Valeur par défaut
 				notes = [ "g/4" ],
 				figure = "q",
 				hampe = 1, // Hampe vers le haut par défaut
-				positionsDot = [],
+				positionsDot = [], // repère à quelle position (num note dans la mesure) il faut affecter un point
 				hasDot = false,
 				cpt = 0,
 				THIS = this
@@ -1122,10 +1192,16 @@
 				if( params.figureAndStem )
 				{
 					figure = params.figureAndStem[0][1];
-					stem = params.figureAndStem[0][3];
+					stem = params.figureAndStem[0][3] != "" ? params.figureAndStem[0][3] : 0;
+
+					switch( stem )
+					{
+						case "down": stem = -1; break;
+						case "up": stem = 1; break;
+						default: stem = 0;
+					}
 				}
 			}
-
 
 			if( params.notes  )
 			{
@@ -1135,9 +1211,11 @@
 				params.notes.forEach(
 					function( n )
 					{
-						if( n[0].match( "\\\." ) )
+						if( n[0][0].indexOf( "." ) > -1 )
 						{
-							n = THIS.splitPoint( n );
+							var n = n[0][0];
+							var tab = n.split(".");
+							n[0] = tab[0];
 							positionsDot.push( cpt++ );
 							hasDot = true;
 						}
@@ -1156,7 +1234,7 @@
 				clef: measureType,
 				keys: notes,
 				duration: figure,
-				stem_direction: stem == "down" ? -1 : 1
+				stem_direction: stem
 			});
 
 			if( positionsDot.length > 0 && hasDot )
@@ -1175,14 +1253,6 @@
 		genererNote: function( noteAndPosition )
 		{
 			return noteAndPosition[0] + "/" + noteAndPosition[2];
-		},
-
-		// FONCTION POUR RETIRER LE POINT DU NOM D'UNE NOTE POINTEE
-		splitPoint: function( note, positionsDot )
-		{
-			var tab = note[0].split(".");
-			note[0] = tab[0];
-			return note;
 		},
 
 		calculPercent: function( valueToPercent, p, total )
@@ -1231,7 +1301,7 @@
 						this.measures[ i ].firstOnNewSystem = true;
 						if( i != 0 )
 						{
-							this.offsetY += 120;
+							this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
 							this.measures[ i-1 ].lastOnOldSystem = true;
 						} 
 					}
@@ -1296,7 +1366,7 @@
 						if( i != 0 )
 						{
 							this.measures[ i-1 ].lastOnOldSystem = true;
-							this.offsetY += 120;
+							this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
 						}
 
 						cpt = 0;
@@ -1329,7 +1399,7 @@
 							if( m.firstOnNewSystem )
 							{
 								numSys++;
-								console.log( "Système n°" + numSys + " (partition statique)" );
+								// console.log( "Système n°" + numSys + " (partition statique)" );
 
 								m.clef      = THIS.clef;
 								m.chiffrage = THIS.chiffrage;
@@ -1345,7 +1415,7 @@
 							{
 								indexMes = 0;
 								numSys++;
-								console.log( "Système n°" + numSys + " (partition responsive)" );
+								// console.log( "Système n°" + numSys + " (partition responsive)" );
 
 								m.clef      = THIS.clef;
 								m.chiffrage = THIS.chiffrage;
