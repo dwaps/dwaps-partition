@@ -36,7 +36,7 @@
 			sidePadding: 10,
 			offsetY: 40,
 			time: "4/4",
-			responsive: false
+			responsive: true
 		},
 
 		help:
@@ -130,6 +130,8 @@
 			// d = new DOMParser(),
 			// DOMpart = d.parseFromString( stringPart, "text/xml" ),
 
+			THIS = this,
+
 			x2js = new X2JS(),
 			JSONpart = x2js.xml_str2json( stringPart )
 		;
@@ -137,6 +139,16 @@
 		this.initPart( JSONpart[ "score-partwise" ] );
 
 		this.start( tag, options );
+
+		// Resizing...
+		window.addEventListener(
+			"resize",
+			function()
+			{
+				THIS.start( tag, options );
+			},
+			false
+		);
 	};
 
 
@@ -156,12 +168,8 @@
 
 			// Gestion responsive			
 			this.responsive = this.options.default.responsive;
-			this.NB_MAX_MEASURES = 2;
+			this.NB_MAX_MEASURES = -1;
 			this.systemOk = true; // Vérifie si le système a son nb de mesures adapté à la taille d'écran
-
-			// TAILLE D'AFFICHAGE
-			this.widthViewer = this.responsive ? window.innerWidth : this.partition.infos.page.width;
-			this.heightViewer = this.responsive ? window.innerHeight : this.partition.infos.page.height;
 
 			// DECALAGE DE PUIS LE HAUT DE CHAQUE SYSTEME PAR RAPPORT A SON PRECEDENT
 			// Au départ, la valeur par défaut
@@ -195,6 +203,16 @@
 
 			if( this.partition && this.partition.systeme.portee2 )
 				this.NB_PORTEES_SYSTEME = 2;
+
+
+			// Définition du nb de mesures à afficher
+			// (selon taille d'ecran disponible)
+			this.calculNbMeasures();
+
+			// Définition de la taille du viewer
+			// (hauteur en fonction du nombre de système affichés)
+			this.calculSizeViewer();
+
 
 			this.measures = [];
 			this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
@@ -253,42 +271,103 @@
 			return this;
 		},
 
+		calculNbMeasures: function()
+		{
+			if( this.responsive )
+			{
+				var wWindow = window.innerWidth;
+
+				// Calcul du nb de mesures max d'un système
+				// en fonction de la taille d'écran
+				if( wWindow <= 1024 )
+				{
+					if( wWindow <= 450 )
+						this.NB_MAX_MEASURES = 1;
+					else if( wWindow <= 700 )
+						this.NB_MAX_MEASURES = 2;
+					else if( wWindow <= 768 )
+						this.NB_MAX_MEASURES = 3;
+					else
+						this.NB_MAX_MEASURES = 4;
+
+					this.systemOk = false;
+				}
+				else
+				{
+					this.systemOk = true;
+				}
+			}
+		},
+
+		calculSizeViewer: function()
+		{
+			var
+				w = window.innerWidth,
+				h = this.partition.infos.page.height
+			;
+
+			if( this.responsive )
+			{
+				h =  this.NB_PORTEES_SYSTEME == 2 ? 260 : 135; // hauteurs système avec marges
+
+				switch( this.NB_MAX_MEASURES )
+				{
+					case 1:
+						h *= this.partition.systeme.portee1.length;
+						break;
+					case 2:
+						h *= (this.partition.systeme.portee1.length / 2);
+						break;
+					case 3:
+						h *= (this.partition.systeme.portee1.length / 3);
+						break;
+					case 4:
+						h *= (this.partition.systeme.portee1.length / 4);
+						break;
+					default:
+						h *= (this.partition.systeme.portee1.length / 5);
+				}
+
+				h += this.offsetY;
+			}
+
+			this.widthViewer = w;
+			this.heightViewer = h;
+		},
+
 		initCanvas: function( tag )
 		{
 			this.tag = tag;
 
-			var renderer = this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
-				renderer.resize( this.widthViewer, this.heightViewer  );
+			this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
+			this.renderer.resize( this.widthViewer, this.heightViewer  );
 
-			var ctx = this.ctx = renderer.getContext();
-				ctx
-					.setFont(
-						options.font.family,
-						options.font.size,
-						options.font.weight
-					)
-					.setBackgroundFillStyle( options.bgColor )
-				;
+			this.ctx = this.renderer.getContext();
+			this.ctx
+				.setFont(
+					options.font.family,
+					options.font.size,
+					options.font.weight
+				)
+				.setBackgroundFillStyle( options.bgColor )
+			;
 		},
 
 		start: function( tag, options )
 		{
-			if( options.default.responsive )
-			{
-				this.reload( tag, options );
-			}
-			else
-			{
-				this.initObject( options );
-				this.initCanvas( tag );
-				this.buildPart();
-			}
+			var opt = options ? options : this.options;
+			var t = tag ? tag : this.tag;
+				t.innerHTML = "";
+
+			this.initObject( options );
+			this.initCanvas( tag );
+			this.buildPart();
 		},
 
 		setOptions: function( options )
 		{
 			this.options = options;
-			// this.reload();
+			this.start( this.tag, options );
 		},
 
 		getOptions: function()
@@ -364,63 +443,6 @@
 		// 		transform: scale(" + scale + ") translate(-" + transX + "px)\
 		// 		" );
 		// },
-
-		reload: function( tag, options )
-		{
-			if(
-				this.responsive
-				||
-				( this.options && this.options.default.responsive )
-				||
-				( options && options.default.responsive ) )
-			{
-				console.log( "reloading..." );
-
-				var wWindow = window.innerWidth;
-
-
-				// Si tag est défini alors this.tag n'existe pas encore
-				// car l'objet n'a pas encore été initialisé
-				if( tag && options )
-				{
-					this.initObject( options );
-					this.initCanvas( tag );
-				}
-				else
-				{
-					this.initObject( this.options );
-					this.tag.innerHTML = "";
-					this.initCanvas( this.tag );
-				}
-
-				// Calcul du nb de mesures max d'un système
-				// en fonction de la taille d'écran
-				if( wWindow <= 1024 )
-				{
-					if( wWindow <= 450 )
-						this.NB_MAX_MEASURES = 1;
-					else if( wWindow <= 700 )
-						this.NB_MAX_MEASURES = 2;
-					else if( wWindow <= 768 )
-						this.NB_MAX_MEASURES = 3;
-					else
-						this.NB_MAX_MEASURES = 4;
-
-					this.systemOk = false;
-				}
-				else
-				{
-					this.systemOk = true;
-				}
-
-				this.buildPart();
-			}
-			else
-			{
-				if( tag && options ) this.start( tag, options );
-			}
-
-		},
 
 		buildPart: function()
 		{
@@ -654,8 +676,8 @@
 					;
 				}
 
-				console.log( "Objet VF :" );
-				console.log( this.VF );
+				// console.log( "Objet VF :" );
+				// console.log( this.VF );
 			}
 
 
@@ -684,7 +706,7 @@
 
 			function genererPortee2( mesEnCours, armature, clef, chiffrage )
 			{
-				console.log( "La prochaine mesure débute un autre système" );
+				// console.log( "La prochaine mesure débute un autre système" );
 
 				mesure = new THIS.VF.Stave(
 								mesEnCours.offsetX,
