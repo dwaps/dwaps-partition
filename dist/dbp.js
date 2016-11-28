@@ -4,11 +4,6 @@
 
 
 
-// ATTENTION : le this.mesStaticPart contient les mesures d'un système PUIS d'un autre éventuel
-// Il faudra gérer autrement => mes1 sys1, mes1 sys2, mes2 sys1, mes2 sys2, mes3 sys3...
-
-
-
 // PARAMETRES OPTIONNELS
 
 	var options = {
@@ -585,9 +580,9 @@
 													&&
 													mesJSON.print[ "_new-page" ] != "yes" )
 					)
-						this.calculOffsetX( cptMesure );
+						this.calculOffsetX( cptMesure ); // Attention: la fonction gère uniquement la double portée pour l'instant ! (le cpt compte double => erreur inévitable !)
 					else
-						this.calculOffsetX( cptMesure );
+						this.calculOffsetX( cptMesure ); // Attention: la fonction gère uniquement la double portée pour l'instant ! (le cpt compte double => erreur inévitable !)
 				}
 
 				mes.offsetX = this.offsetX;
@@ -610,70 +605,79 @@
 				// if( mesJSON.armature  )  			armature = this.armature;
 
 
+
+				var
+					tabMes = this.responsive ? this.mesDynamicPart : this.mesStaticPart,
+					toggle = true, // toggle == true => portee1 : portee2
+					cptMes = 0
+				;
+
+
 				// SI GESTION AUTOMATIQUE DE LA LARGEUR DES MESURES
-
-				var tabMes = this.responsive ? this.mesDynamicPart : this.mesStaticPart;
-				console.log(tabMes)
-
-				if( this.mesStaticPart.length > 0 ) // Cela signifie qu'on est pas en création manuelle
+				if( tabMes.length > 0 ) // Cela signifie qu'on est pas en création manuelle
 				{
 					if( !reload )
 					{
-						this.mesStaticPart.forEach(
+						tabMes.forEach(
 							function( m, i )
 							{
-								// if( !reload )
-								// {
-									mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
-
-									if( m.firstOnNewSystem )
+								if( THIS.NB_PORTEES_SYSTEME == 2 )
+								{
+									if( toggle )
 									{
-										// ARMATURE
-										armature = chargerArmature( THIS.armature, THIS );
-										if( !armature ) armature = THIS.armature;
-										mesure.addKeySignature( armature );
+										mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
 
-										clef = m.clef;
-										if( !clef ) clef = THIS.clef;
-										mesure.addClef( clef );
+										if( m.firstOnNewSystem )
+										{
+											// ARMATURE
+											armature = chargerArmature( THIS.armature, THIS );
+											if( !armature ) armature = THIS.armature;
+											mesure.addKeySignature( armature );
 
-										chiffrage = m.chiffrage;
-										if( !chiffrage ) chiffrage = THIS.chiffrage;
-										mesure.addTimeSignature( chiffrage );
+											clef = m.clef;
+											if( !clef ) clef = THIS.clef;
+											mesure.addClef( clef );
 
-										// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+											chiffrage = m.chiffrage;
+											if( !chiffrage ) chiffrage = THIS.chiffrage;
+											mesure.addTimeSignature( chiffrage );
+
+											// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+										}
+
+										mesure
+											.setContext( THIS.ctx )
+											.draw()
+										;
+
+										genererPhrases(
+											true,
+											mesure,
+											THIS.partition.systeme.portee1[ cptMes ]
+										);
+
+										// Stockage de la mesure VF pour le reload
+										THIS.mesVF.push( mesure );
+
+										if( i != 0 ) cptMes++;
 									}
-
-									mesure
-										.setContext( THIS.ctx )
-										.draw()
-									;
-
-									genererPhrases(
-										true,
-										mesure,
-										THIS.partition.systeme.portee1[ i ]
-									);
-
-									// Stockage de la mesure VF pour le reload
-									THIS.mesVF.push( mesure );
-
-
-									if( THIS.NB_PORTEES_SYSTEME == 2 )
+									else
 									{
-										genererPortee2( m, armature, clef, chiffrage );
+										genererPortee2( tabMes[ i-1 ], armature, clef, chiffrage );
 
 										genererPhrases(
 											false,
 											mesure,
-											THIS.partition.systeme.portee2[ i ]
+											THIS.partition.systeme.portee2[ cptMes ]
 										);
 									}
-								// }
-								// else
-								// {
-								// 	console.log( this.mesVF );
-								// }
+
+									toggle = !toggle;
+								}
+								else // Une seule portée (clé de Sol par défaut)
+								{
+
+								}
 							}
 						);
 					}
@@ -1228,17 +1232,22 @@
 
 		calculOffsetX: function( cptMesure )
 		{
-			var mesureWidth = 0;
+			var mesureWidth = 0, cptMes = 0;
 
 			for( var i = 0; i < cptMesure; i ++)
 			{
-				// width mesure précédente = offsetX mesure courante
-				mesureWidth = this.partition.systeme.portee1[ i ]._width;
+				if( i%2 == 0 )
+				{
+					// width mesure précédente = offsetX mesure courante
+					mesureWidth = this.partition.systeme.portee1[ cptMes ]._width;
 
-				if( this.mesStaticPart[ i ].firstOnNewSystem )
-					this.offsetX = this.leftMargin;
+					if( this.mesStaticPart[ i ].firstOnNewSystem )
+						this.offsetX = this.leftMargin;
 
-				this.offsetX += parseInt( mesureWidth );
+					this.offsetX += parseInt( mesureWidth );
+
+					cptMes++;
+				}
 			}
 
 			mesureWidth = null;
@@ -1373,14 +1382,16 @@
 			var
 				THIS = this,
 				allMesPart = this.partition.systeme.portee1.length,
-				// allMesPart = this.NB_PORTEES_SYSTEME == 2 ? allMesPart : allMesPart*2,
+				allMesPart = this.NB_PORTEES_SYSTEME == 2 ? allMesPart*2 : allMesPart,
+				mesXML = null,
+				cptMes = 0,
+				toggle = true, // toggle == true => portee1 : portee2
 				numSys = 0,
 				mesWidth = [],
 				indexMes = 0
 			;
 
 			this.offsetX = this.leftMargin = this.options.default.sidePadding;
-
 
 			if( !reload )
 			{
@@ -1392,89 +1403,35 @@
 				// Stockage des paramètres communs dans this.mesStaticPart
 				for( var i = 0; i < allMesPart; i++)
 				{
-					var mesXML;
-
-					// if( this.NB_PORTEES_SYSTEME == 2 )
-					// {
-					// 	if( i%2 == 0 )
-					// 	{
-					// 		mesXML = this.partition.systeme.portee1[i];
-					// 	}
-					// 	else
-					// 	{
-					// 		mesXML = this.partition.systeme.portee2[i];
-					// 	}
-					// }
-					// else
-					// {
-						mesXML = this.partition.systeme.portee1[i];
-					// }
-
 					this.mesStaticPart.push({});
-					this.mesStaticPart[ i ].num = i+1;
 
-
-
-					// Si le nombre de mesures est trop important
-					// il faut l'adapter
-					if( THIS.systemOk )
+					if( this.NB_PORTEES_SYSTEME == 2 )
 					{
-						if( mesXML.print &&
-											( mesXML.print[ "_new-system" ] == "yes"
-												||
-											mesXML.print[ "_new-page" ] == "yes" ) )
+						if( cptMes < allMesPart/2 && toggle )
 						{
-							this.mesStaticPart[ i ].firstOnNewSystem = true;
-							if( i != 0 )
-							{
-								this.offsetY += this.NB_PORTEES_SYSTEME == 2 ? 250 : 120;
-								this.mesStaticPart[ i-1 ].lastOnOldSystem = true;
-							} 
+							mesXML = this.partition.systeme.portee1[ cptMes ];
+							this.mesStaticPart[ i ].num = parseInt( mesXML._number );
+
+							defineSysAndMes( mesXML, i, true );
+							cptMes++;
+						}
+						else
+						{
+							// mesXML = this.partition.systeme.portee2[i];
 						}
 
-						// Mise à jour de l'offsetY
-						this.mesStaticPart[ i ].offsetY = this.offsetY;
+						toggle = !toggle;
 					}
-
-					// Passage obligatoire !
-					// Meme si le système est redéfini
-					// (à tout moment le mode peut changer par exemple...)
-					this.loadAttributs( mesXML, this.mesStaticPart[ i ] );
-
-					// La mesure a-telle une marge gauche spécifique ?
-					// (début de système)
-					if( mesXML.print )
+					else
 					{
-						if( mesXML.print[ "system-layout" ] )
-						{
-							if( mesXML.print[ "system-layout" ][ "system-margins" ] )
-							{
-								if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
-								{
-									this.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
-									this.mesStaticPart[ i ].hasLeftMargin = true;
-									this.mesStaticPart[ i ].offsetX = this.leftMargin;
-								}
-							}
-						}
+						mesXML = this.partition.systeme.portee1[i];
 					}
-
-					if( !this.mesStaticPart[ i ].hasLeftMargin && !this.mesStaticPart[ i ].firstOnNewSystem )
-					{
-						if( i > 0 && mesXML._number != "1" )
-						{
-							this.calculOffsetX( i );
-						}
-					}
-
-
-					// Mise à jour de l'offsetX
-					if( !this.mesStaticPart[ i ].hasLeftMargin ) this.mesStaticPart[ i ].offsetX = this.offsetX;
 
 					mesXML = null;
 				}
 
 				this.mesDynamicPart = this.mesStaticPart;
+				cptMes = 0;
 			}
 
 
@@ -1520,6 +1477,7 @@
 						this.mesDynamicPart[ i ].offsetX = concatWidth + THIS.options.default.sidePadding;
 
 					concatWidth += this.mesDynamicPart[ i ].width;
+					toggle = true;
 					cpt++;
 				}
 			}
@@ -1530,20 +1488,23 @@
 					{
 						if( !THIS.responsive && !reload )
 						{
-							var mesXML = THIS.partition.systeme.portee1[i];
-
-							if( THIS.mesStaticPart[i].firstOnNewSystem )
+							if( THIS.NB_PORTEES_SYSTEME == 2 )
 							{
-								numSys++;
-								// console.log( "Système n°" + numSys + " (partition statique)" );
+								if( cptMes < allMesPart/2 && toggle )
+								{
+									mesXML = THIS.partition.systeme.portee1[ cptMes ];
+									defineSysAndMes( mesXML, i, false );
 
-								THIS.mesStaticPart[i].clef      = THIS.clef;
-								THIS.mesStaticPart[i].chiffrage = THIS.chiffrage;
-								THIS.mesStaticPart[i].armature  = THIS.armature;
-								THIS.mesStaticPart[i].mode      = THIS.mode;
+									cptMes++;
+								}
+
+								toggle = !toggle;
 							}
-
-							THIS.mesStaticPart[i].width = parseInt( mesXML._width );
+							else
+							{
+								mesXML = THIS.partition.systeme.portee1[ i ];
+								defineSysAndMes( mesXML, i, false );
+							}
 						}
 						else
 						{
@@ -1578,6 +1539,85 @@
 			// Le système a bien été calculé
 			this.systemOk = true;
 
+
+			// FONCTIONS
+			function defineSysAndMes( mesXML, cpt, firstDefine )
+			{
+				if( firstDefine )
+				{
+					// Si le nombre de mesures est trop important
+					// il faut l'adapter
+					if( THIS.systemOk )
+					{
+						if( mesXML.print &&
+											( mesXML.print[ "_new-system" ] == "yes"
+												||
+											mesXML.print[ "_new-page" ] == "yes" ) )
+						{
+							THIS.mesStaticPart[ cpt ].firstOnNewSystem = true;
+							if( i != 0 )
+							{
+								THIS.offsetY += THIS.NB_PORTEES_SYSTEME == 2 ? 250 : 120;
+								THIS.mesStaticPart[ cpt-1 ].lastOnOldSystem = true;
+							} 
+						}
+
+						// Mise à jour de l'offsetY
+						THIS.mesStaticPart[ cpt ].offsetY = THIS.offsetY;
+					}
+
+					// Passage obligatoire !
+					// Meme si le système est redéfini
+					// (à tout moment le mode peut changer par exemple...)
+					THIS.loadAttributs( mesXML, THIS.mesStaticPart[ cpt ] );
+
+					// La mesure a-telle une marge gauche spécifique ?
+					// (début de système)
+					if( mesXML.print )
+					{
+						if( mesXML.print[ "system-layout" ] )
+						{
+							if( mesXML.print[ "system-layout" ][ "system-margins" ] )
+							{
+								if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
+								{
+									THIS.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
+									THIS.mesStaticPart[ cpt ].hasLeftMargin = true;
+									THIS.mesStaticPart[ cpt ].offsetX = THIS.leftMargin;
+								}
+							}
+						}
+					}
+
+					if( !THIS.mesStaticPart[ cpt ].hasLeftMargin && !THIS.mesStaticPart[ cpt ].firstOnNewSystem )
+					{
+						if( cpt > 0 && mesXML._number != "1" )
+						{
+							THIS.calculOffsetX( cpt );
+						}
+					}
+
+
+					// Mise à jour de l'offsetX
+					if( !THIS.mesStaticPart[ cpt ].hasLeftMargin ) THIS.mesStaticPart[ cpt ].offsetX = THIS.offsetX;
+				}
+				else
+				{
+					if( THIS.mesStaticPart[ cpt ].firstOnNewSystem )
+					{
+						numSys++;
+						// console.log( "Système n°" + numSys + " (partition statique)" );
+
+						THIS.mesStaticPart[ cpt ].clef      = THIS.clef;
+						THIS.mesStaticPart[ cpt ].chiffrage = THIS.chiffrage;
+						THIS.mesStaticPart[ cpt ].armature  = THIS.armature;
+						THIS.mesStaticPart[ cpt ].mode      = THIS.mode;
+					}
+
+					THIS.mesStaticPart[ cpt ].width = parseInt( mesXML._width );
+				}
+			}
+
 			THIS = null;
 			allMesPart = null;
 			mesWidth = null;
@@ -1586,42 +1626,32 @@
 
 		loadAttributs: function( mesXML, mes )
 		{
-			// if( mesXML )
-			// {
-				// SI LA MESURE A DES ATTRIBUTS (chiffrage, clef, armature)
-				if( mesXML.attributes )
+			// SI LA MESURE A DES ATTRIBUTS (chiffrage, clef, armature)
+			if( mesXML.attributes )
+			{
+				if( mesXML.attributes.time ) 
 				{
-					if( mesXML.attributes.time ) 
+					this.chiffrage = mesXML.attributes.time.beats + "/" + mesXML.attributes.time[ "beat-type" ];
+					mes.chiffrage = this.chiffrage;
+				}
+				if( mesXML.attributes.clef ) 
+				{
+					this.clef = mesXML.attributes.clef.sign == "G" ? this.CLE_SOL : this.CLE_FA;
+					mes.clef = this.clef;
+				}
+				if( mesXML.attributes.key ) 
+				{
+					if( mesXML.attributes.key.fifths ) 
 					{
-						this.chiffrage = mesXML.attributes.time.beats + "/" + mesXML.attributes.time[ "beat-type" ];
-						mes.chiffrage = this.chiffrage;
+						this.armature = mesXML.attributes.key.fifths;
+						mes.armature = this.armature;
 					}
-					if( mesXML.attributes.clef ) 
+					if( mesXML.attributes.key.mode ) 
 					{
-						this.clef = mesXML.attributes.clef.sign == "G" ? this.CLE_SOL : this.CLE_FA;
-						mes.clef = this.clef;
-					}
-					if( mesXML.attributes.key ) 
-					{
-						if( mesXML.attributes.key.fifths ) 
-						{
-							this.armature = mesXML.attributes.key.fifths;
-							mes.armature = this.armature;
-						}
-						if( mesXML.attributes.key.mode ) 
-						{
-							this.mode = mesXML.attributes.key.mode;
-						}
+						this.mode = mesXML.attributes.key.mode;
 					}
 				}
-			// }
-			// else
-			// {
-			// 	mes.mode = this.mode;
-			// 	mes.clef = this.clef;
-			// 	mes.chiffrage = this.chiffrage;
-			// 	mes.armature = this.armature;
-			// }
+			}
 		},
 
 
