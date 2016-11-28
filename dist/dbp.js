@@ -4,7 +4,7 @@
 
 
 
-// ATTENTION : le this.measures contient les mesures d'un système PUIS d'un autre éventuel
+// ATTENTION : le this.mesStaticPart contient les mesures d'un système PUIS d'un autre éventuel
 // Il faudra gérer autrement => mes1 sys1, mes1 sys2, mes2 sys1, mes2 sys2, mes3 sys3...
 
 
@@ -36,7 +36,7 @@
 			sidePadding: 10,
 			offsetY: 40,
 			time: "4/4",
-			responsive: true
+			responsive: false
 		},
 
 		help:
@@ -226,8 +226,6 @@
 
 				// Brique essentielle :
 				// La partition se construit mesure par mesure
-				this.measures = [];
-				// Tableaux de stockage
 				this.mesStaticPart = [];
 				this.mesDynamicPart = [];
 				this.mesVF = [];
@@ -502,7 +500,7 @@
 			// }
 			// else
 			// {
-				this.dynamicSizingMeasure( reload );
+				this.sizingMeasures( reload );
 			// }
 		},
 
@@ -613,11 +611,15 @@
 
 
 				// SI GESTION AUTOMATIQUE DE LA LARGEUR DES MESURES
-				if( this.measures.length > 0 ) // Cela signifie qu'on est pas en création manuelle
+
+				var tabMes = this.responsive ? this.mesDynamicPart : this.mesStaticPart;
+				console.log(tabMes)
+
+				if( this.mesStaticPart.length > 0 ) // Cela signifie qu'on est pas en création manuelle
 				{
 					if( !reload )
 					{
-						this.measures.forEach(
+						this.mesStaticPart.forEach(
 							function( m, i )
 							{
 								// if( !reload )
@@ -1233,7 +1235,7 @@
 				// width mesure précédente = offsetX mesure courante
 				mesureWidth = this.partition.systeme.portee1[ i ]._width;
 
-				if( this.measures[ i ].firstOnNewSystem )
+				if( this.mesStaticPart[ i ].firstOnNewSystem )
 					this.offsetX = this.leftMargin;
 
 				this.offsetX += parseInt( mesureWidth );
@@ -1366,7 +1368,7 @@
 			return valueToPercent ? p * ( 100 / total ) : ( p / 100 ) * total;
 		},
 
-		dynamicSizingMeasure: function( reload )
+		sizingMeasures: function( reload )
 		{
 			var
 				THIS = this,
@@ -1387,7 +1389,7 @@
 				// pour connaître la taille totale et les tailles de chaque mesure //
 				/////////////////////////////////////////////////////////////////////
 
-				// Stockage des paramètres communs dans this.measures
+				// Stockage des paramètres communs dans this.mesStaticPart
 				for( var i = 0; i < allMesPart; i++)
 				{
 					var mesXML;
@@ -1408,8 +1410,8 @@
 						mesXML = this.partition.systeme.portee1[i];
 					// }
 
-					this.measures.push({});
-					this.measures[ i ].num = i+1;
+					this.mesStaticPart.push({});
+					this.mesStaticPart[ i ].num = i+1;
 
 
 
@@ -1422,22 +1424,22 @@
 												||
 											mesXML.print[ "_new-page" ] == "yes" ) )
 						{
-							this.measures[ i ].firstOnNewSystem = true;
+							this.mesStaticPart[ i ].firstOnNewSystem = true;
 							if( i != 0 )
 							{
 								this.offsetY += this.NB_PORTEES_SYSTEME == 2 ? 250 : 120;
-								this.measures[ i-1 ].lastOnOldSystem = true;
+								this.mesStaticPart[ i-1 ].lastOnOldSystem = true;
 							} 
 						}
 
 						// Mise à jour de l'offsetY
-						this.measures[ i ].offsetY = this.offsetY;
+						this.mesStaticPart[ i ].offsetY = this.offsetY;
 					}
 
 					// Passage obligatoire !
 					// Meme si le système est redéfini
 					// (à tout moment le mode peut changer par exemple...)
-					this.loadAttributs( mesXML, this.measures[ i ] );
+					this.loadAttributs( mesXML, this.mesStaticPart[ i ] );
 
 					// La mesure a-telle une marge gauche spécifique ?
 					// (début de système)
@@ -1450,14 +1452,14 @@
 								if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
 								{
 									this.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
-									this.measures[ i ].hasLeftMargin = true;
-									this.measures[ i ].offsetX = this.leftMargin;
+									this.mesStaticPart[ i ].hasLeftMargin = true;
+									this.mesStaticPart[ i ].offsetX = this.leftMargin;
 								}
 							}
 						}
 					}
 
-					if( !this.measures[ i ].hasLeftMargin && !this.measures[ i ].firstOnNewSystem )
+					if( !this.mesStaticPart[ i ].hasLeftMargin && !this.mesStaticPart[ i ].firstOnNewSystem )
 					{
 						if( i > 0 && mesXML._number != "1" )
 						{
@@ -1467,16 +1469,20 @@
 
 
 					// Mise à jour de l'offsetX
-					if( !this.measures[ i ].hasLeftMargin ) this.measures[ i ].offsetX = this.offsetX;
+					if( !this.mesStaticPart[ i ].hasLeftMargin ) this.mesStaticPart[ i ].offsetX = this.offsetX;
 
 					mesXML = null;
 				}
+
+				this.mesDynamicPart = this.mesStaticPart;
 			}
-			else if( reload && this.responsive )
-			{
-				this.creerMesure( true, reload );
-				return;
-			}
+
+
+			// else if( reload && this.responsive )
+			// {
+			// 	this.creerMesure( true, reload );
+			// 	return;
+			// }
 
 			// Si trop de mesures pour la taille d'écran
 			// on recalcule la taille et l'offset des mesures
@@ -1489,13 +1495,13 @@
 				{
 					if( i == 0 || ( cpt == this.NB_MAX_MEASURES && this.responsive ) )
 					{
-						this.measures[ i ].firstOnNewSystem = true;
+						this.mesDynamicPart[ i ].firstOnNewSystem = true;
 
-						this.loadAttributs( false, this.measures[ i ] );
+						this.loadAttributs( false, this.mesDynamicPart[ i ] );
 
 						if( i != 0 )
 						{
-							this.measures[ i-1 ].lastOnOldSystem = true;
+							this.mesDynamicPart[ i-1 ].lastOnOldSystem = true;
 							this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
 						}
 
@@ -1503,45 +1509,41 @@
 					}
 
 					// Mise à jour de l'offsetY
-					this.measures[ i ].offsetY = this.offsetY;
+					this.mesDynamicPart[ i ].offsetY = this.offsetY;
 
 					// LARGEUR MESURE ET OFFSETX
-					this.measures[ i ].width = window.innerWidth / this.NB_MAX_MEASURES;
+					this.mesDynamicPart[ i ].width = window.innerWidth / this.NB_MAX_MEASURES;
 
-					if( this.measures[ i ].firstOnNewSystem )
-						this.measures[ i ].offsetX = THIS.options.default.sidePadding;
+					if( this.mesDynamicPart[ i ].firstOnNewSystem )
+						this.mesDynamicPart[ i ].offsetX = THIS.options.default.sidePadding;
 					else
-						this.measures[ i ].offsetX = concatWidth + THIS.options.default.sidePadding;
+						this.mesDynamicPart[ i ].offsetX = concatWidth + THIS.options.default.sidePadding;
 
-					concatWidth += this.measures[ i ].width;
+					concatWidth += this.mesDynamicPart[ i ].width;
 					cpt++;
 				}
 			}
 			else
 			{
-				this.measures.forEach(
+				this.mesDynamicPart.forEach(
 					function( m, i )
 					{
 						if( !THIS.responsive && !reload )
 						{
 							var mesXML = THIS.partition.systeme.portee1[i];
 
-							if( m.firstOnNewSystem )
+							if( THIS.mesStaticPart[i].firstOnNewSystem )
 							{
 								numSys++;
 								// console.log( "Système n°" + numSys + " (partition statique)" );
 
-								m.clef      = THIS.clef;
-								m.chiffrage = THIS.chiffrage;
-								m.armature  = THIS.armature;
-								m.mode      = THIS.mode;
+								THIS.mesStaticPart[i].clef      = THIS.clef;
+								THIS.mesStaticPart[i].chiffrage = THIS.chiffrage;
+								THIS.mesStaticPart[i].armature  = THIS.armature;
+								THIS.mesStaticPart[i].mode      = THIS.mode;
 							}
 
-							m.width = parseInt( mesXML._width );
-
-							THIS.mesStaticPart.push( THIS.measures );
-
-							console.log( THIS.mesStaticPart );
+							THIS.mesStaticPart[i].width = parseInt( mesXML._width );
 						}
 						else
 						{
@@ -1652,7 +1654,7 @@
 						// console.log( "\n" );
 
 
-			this.measures.forEach(
+			this.mesDynamicPart.forEach(
 				function( m, i )
 				{
 					if( m.firstOnNewSystem )
@@ -1665,14 +1667,14 @@
 						}
 
 						var cpt = 0;
-						for( var j = m.num-1; j < THIS.measures.length; j++ )
+						for( var j = m.num-1; j < THIS.mesDynamicPart.length; j++ )
 						{
 							allCurrentSysMesWidth.push( parseFloat( THIS.partition.systeme.portee1[ j ]._width ) );
 							totalSizeCurrentSystem += allCurrentSysMesWidth[ cpt ];
 
 							cpt++;
 
-							if( THIS.measures[ j ].lastOnOldSystem )
+							if( THIS.mesDynamicPart[ j ].lastOnOldSystem )
 								break;
 						}
 
@@ -1701,32 +1703,32 @@
 
 
 						cpt = 0, concatWidth = 0;
-						for( var j = m.num-1; j < THIS.measures.length; j++ )
+						for( var j = m.num-1; j < THIS.mesDynamicPart.length; j++ )
 						{
 							// pourcentage de la mesure dans la partition originale
 							p = THIS.calculPercent( true, allCurrentSysMesWidth[ cpt ], THIS.partition.infos.page.width );
 							// console.log( "\tPourcentage mes " + (j+1) + " : " + p );
 
 							// Mise à jour de la taille de la mesure et stockage
-							THIS.measures[ j ].width = THIS.calculPercent( false, p , screenSizeWithoutMargins ) + toAdd;
-							// console.log( "\t\tNouvelle taille mes " + (j+1) + " : " + THIS.measures[ j ].width );
+							THIS.mesDynamicPart[ j ].width = THIS.calculPercent( false, p , screenSizeWithoutMargins ) + toAdd;
+							// console.log( "\t\tNouvelle taille mes " + (j+1) + " : " + THIS.mesDynamicPart[ j ].width );
 
 							// Concaténation de la largeur de la mesure courante
 							// pour pouvoir mettre à jour correctement l'offsetX de chacune
 
 							// Mise à jour de l'offsetX
 							if( cpt == 0 )
-								THIS.measures[ j ].offsetX = THIS.options.default.sidePadding;
+								THIS.mesDynamicPart[ j ].offsetX = THIS.options.default.sidePadding;
 							else
 							{
-								THIS.measures[ j ].offsetX = concatWidth + THIS.options.default.sidePadding;
+								THIS.mesDynamicPart[ j ].offsetX = concatWidth + THIS.options.default.sidePadding;
 							}
-							concatWidth += THIS.measures[ j ].width;
-							// console.log( "\t\toffsetX mes " + (j+1) + " : " + THIS.measures[ j ].offsetX );
+							concatWidth += THIS.mesDynamicPart[ j ].width;
+							// console.log( "\t\toffsetX mes " + (j+1) + " : " + THIS.mesDynamicPart[ j ].offsetX );
 
 							cpt++;
 
-							if( THIS.measures[ j ].lastOnOldSystem )
+							if( THIS.mesDynamicPart[ j ].lastOnOldSystem )
 								break;
 						}
 
