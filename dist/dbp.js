@@ -4,8 +4,8 @@
 
 
 
-// ATTENTION : il faudra penser à charger la taille du canvas en fonction de l'écran
-// par défaut il est à la taille de la partition
+// ATTENTION : le this.measures contient les mesures d'un système PUIS d'un autre éventuel
+// Il faudra gérer autrement => mes1 sys1, mes1 sys2, mes2 sys1, mes2 sys2, mes3 sys3...
 
 
 
@@ -181,10 +181,6 @@
 			// CHIFFRAGE
 			this.chiffrage = this.options.default.time;
 
-			// Brique essentielle :
-			// La partition se construit mesure par mesure
-			this.measures = [];
-
 
 			if( !reload )
 			{
@@ -227,7 +223,16 @@
 					this.NB_PORTEES_SYSTEME = 2;
 
 
-				this.measuresVF = [];
+
+				// Brique essentielle :
+				// La partition se construit mesure par mesure
+				this.measures = [];
+				// Tableaux de stockage
+				this.mesStaticPart = [];
+				this.mesDynamicPart = [];
+				this.mesVF = [];
+				this.mesMelodie = [];
+
 				this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
 				this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
 				this.indexFirstMeasureSystem = 0;
@@ -274,9 +279,9 @@
 					ACTIVE: ""
 				};
 				this.voices = [];
-			}
 
-			return this;
+				return this;
+			}
 		},
 
 		calculNbMeasures: function()
@@ -310,7 +315,7 @@
 		calculSizeViewer: function()
 		{
 			var
-				w = window.innerWidth,
+				w = this.partition.infos.page.width,
 				h = this.partition.infos.page.height
 			;
 
@@ -363,13 +368,16 @@
 
 		start: function( tag, options, reload )
 		{
+			if( reload && !this.responsive )
+				return;
+
 			var opt = options ? options : this.options;
 			var t = tag ? tag : this.tag;
 				t.innerHTML = "";
 
 			this.initObject( options, reload );				
 			this.initCanvas( tag );
-			this.buildPart();
+			this.buildPart( reload );
 		},
 
 		setOptions: function( options )
@@ -452,7 +460,7 @@
 		// 		" );
 		// },
 
-		buildPart: function()
+		buildPart: function( reload )
 		{
 			var THIS = this;
 			// var ctx = this.renderer.ctx;
@@ -461,61 +469,44 @@
 			// if( !this.responsive )
 			// {
 			// 	var cptMesure = 0;
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
 				
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
 			// 	// this.creerMesure( { mesJSON: this.partition.systeme.portee1[ cptMesure ] }, cptMesure++ );
 			// 	cptMesure = null;
 			// }
 			// else
 			// {
-				this.dynamicSizingMeasure();
+				this.dynamicSizingMeasure( reload );
 			// }
-
-			// var mesure2 = this.creerMesure({
-			// 	offsetX: mesure.offsetX + mesure.width,
-			// 	offsetY: mesure.offsetY,
-			// 	width: this.partition.systeme.portee1[0]._width
-			// });
-
-			// this.creerMelodieMesure(
-			// 	mesure2,
-			// 	"4/4",
-			// 	this.voix.TENOR,
-			// 	[
-			// 		[[ this.note.MI , this.figure.BLANCHE, 5 ]],
-			// 		[[ this.note.SI , this.figure.NOIRE, 3 ]],
-			// 		[[ this.note.RE , this.figure.NOIRE, 4 ]]
-			// 	]
-			// );
 		},
 
-		creerMesure: function( mesJSON, cptMesure )
+		creerMesure: function( mesJSON, reload, cptMesure )
 		{
 			var
 				THIS = this,
@@ -604,7 +595,7 @@
 				mes.offsetX = this.offsetX;
 				mes.offsetY = this.offsetY;
 
-				this.creerMesure( mes );
+				this.creerMesure( mes, reload );
 				return;
 			}
 
@@ -624,52 +615,78 @@
 				// SI GESTION AUTOMATIQUE DE LA LARGEUR DES MESURES
 				if( this.measures.length > 0 ) // Cela signifie qu'on est pas en création manuelle
 				{
-					this.measures.forEach(
-						function( m, i )
-						{
-							mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
-
-							if( m.firstOnNewSystem )
+					if( !reload )
+					{
+						this.measures.forEach(
+							function( m, i )
 							{
-								// ARMATURE
-								armature = chargerArmature( THIS.armature, THIS );
-								if( !armature ) armature = THIS.armature;
-								mesure.addKeySignature( armature );
+								// if( !reload )
+								// {
+									mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
 
-								clef = m.clef;
-								if( !clef ) clef = THIS.clef;
-								mesure.addClef( clef );
+									if( m.firstOnNewSystem )
+									{
+										// ARMATURE
+										armature = chargerArmature( THIS.armature, THIS );
+										if( !armature ) armature = THIS.armature;
+										mesure.addKeySignature( armature );
 
-								chiffrage = m.chiffrage;
-								if( !chiffrage ) chiffrage = THIS.chiffrage;
-								mesure.addTimeSignature( chiffrage );
+										clef = m.clef;
+										if( !clef ) clef = THIS.clef;
+										mesure.addClef( clef );
 
-								// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+										chiffrage = m.chiffrage;
+										if( !chiffrage ) chiffrage = THIS.chiffrage;
+										mesure.addTimeSignature( chiffrage );
+
+										// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+									}
+
+									mesure
+										.setContext( THIS.ctx )
+										.draw()
+									;
+
+									genererPhrases(
+										true,
+										mesure,
+										THIS.partition.systeme.portee1[ i ]
+									);
+
+									// Stockage de la mesure VF pour le reload
+									THIS.mesVF.push( mesure );
+
+
+									if( THIS.NB_PORTEES_SYSTEME == 2 )
+									{
+										genererPortee2( m, armature, clef, chiffrage );
+
+										genererPhrases(
+											false,
+											mesure,
+											THIS.partition.systeme.portee2[ i ]
+										);
+									}
+								// }
+								// else
+								// {
+								// 	console.log( this.mesVF );
+								// }
 							}
-
-							mesure
-								.setContext( THIS.ctx )
-								.draw()
-							;
-
-							genererPhrases(
-								THIS,
-								mesure,
-								THIS.partition.systeme.portee1[ i ]
-							);
-
-							// Stockage de la mesure VF pour le reload
-							THIS.measuresVF.push( mesure );
-
-
-							if( THIS.NB_PORTEES_SYSTEME == 2 )
+						);
+					}
+					else
+					{
+						this.mesVF.forEach(
+							function( m, i )
 							{
-								genererPortee2( m, armature, clef, chiffrage );
+								m.setContext( THIS.ctx ).draw();
+								THIS.VF.Formatter.FormatAndDraw( THIS.ctx, m, THIS.mesMelodie[ i ] );
 							}
-						}
-					);
+						);
+					}
 				}
-				else
+				else // Sinon si on est en mode "création manuelle"
 				{
 					mesure = new this.VF.Stave( offsetX, offsetY, width );
 
@@ -687,7 +704,7 @@
 					;
 
 					// Stockage de la mesure VF pour le reload
-					this.measuresVF.push( mesure );
+					this.mesVF.push( mesure );
 				}
 
 				// console.log( "Objet VF :" );
@@ -741,10 +758,10 @@
 				;
 
 				// Stockage de la mesure VF pour le reload
-				THIS.measuresVF.push( mesure );
+				THIS.mesVF.push( mesure );
 			}
 
-			function genererPhrases( THIS, mesFromVF, mesFromPart )
+			function genererPhrases( porteeSol, mesFromVF, mesFromPart )
 			{
 				var
 					notes = [],
@@ -823,19 +840,39 @@
 					{
 						case "soprano":
 							agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
-							genererMelodie( mesFromVF, THIS.voix.SOPRANO, phraseSoprano );
+							genererMelodie(
+									mesFromVF,
+									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									THIS.voix.SOPRANO,
+									phraseSoprano
+							);
 							break;
 						case "alto":
 							agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
-							genererMelodie( mesFromVF, THIS.voix.ALTO, phraseAlto );
+							genererMelodie(
+									mesFromVF,
+									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									THIS.voix.ALTO,
+									phraseAlto
+							);
 							break;
 						case "tenor":
 							agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
-							genererMelodie( mesFromVF, THIS.voix.TENOR, phraseTenor );
+							genererMelodie(
+									mesFromVF,
+									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									THIS.voix.TENOR,
+									phraseTenor
+							);
 							break;
 						case "basse": // Attention : générer portée du dessous !!!
 							agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
-							genererMelodie( mesFromVF, THIS.voix.BASSE, phraseBasse );
+							genererMelodie(
+									mesFromVF,
+									THIS.CLE_FA,
+									THIS.voix.BASSE,
+									phraseBasse
+							);
 							break;
 
 						case "sansVoix":
@@ -1114,7 +1151,7 @@
 				);
 			}
 
-			function genererMelodie( mes, voix, phrase )
+			function genererMelodie( mes, clef, voix, phrase )
 			{
 				if( phrase.length > 0 )
 				{
@@ -1125,6 +1162,7 @@
 					{
 						THIS.creerMelodieMesure(
 							mes,
+							clef,
 							THIS.chiffrage,
 							voix,
 							phrase
@@ -1180,7 +1218,7 @@
 			mesureWidth = null;
 		},
 
-		creerMelodieMesure: function( mesureVF, chiffrage, voice, notesAndPositions )
+		creerMelodieMesure: function( mesureVF, clef, chiffrage, voice, notesAndPositions )
 		{
 			var melodie = [];
 			this.voix.ACTIVE = voice ? voice : this.voix.ACTIVE;
@@ -1192,7 +1230,7 @@
 				{
 					melodie.push(
 						this.creerNote({				
-							measureType: this.CLE_SOL,
+							measureType: clef,
 							notes: notesAndPositions[i],
 							figureAndStem: notesAndPositions[i]
 						})
@@ -1210,6 +1248,7 @@
 			);
 
 			this.VF.Formatter.FormatAndDraw( this.ctx, mesureVF, melodie );
+			this.mesMelodie.push( melodie );
 		},
 
 		creerNote: function( params )
@@ -1299,11 +1338,12 @@
 			return valueToPercent ? p * ( 100 / total ) : ( p / 100 ) * total;
 		},
 
-		dynamicSizingMeasure: function()
+		dynamicSizingMeasure: function( reload )
 		{
 			var
 				THIS = this,
 				allMesPart = this.partition.systeme.portee1.length,
+				// allMesPart = this.NB_PORTEES_SYSTEME == 2 ? allMesPart : allMesPart*2,
 				numSys = 0,
 				mesWidth = [],
 				indexMes = 0
@@ -1312,79 +1352,102 @@
 			this.offsetX = this.leftMargin = this.options.default.sidePadding;
 
 
-			/////////////////////////////////////////////////////////////////////
-			// PARCOURS DE TOUTE LA PARTITION                                  //
-			// pour connaître la taille totale et les tailles de chaque mesure //
-			/////////////////////////////////////////////////////////////////////
-
-
-			// Stockage des paramètres communs dans this.measures
-			for( var i = 0; i < allMesPart; i++)
+			if( !reload )
 			{
-				var mesXML = this.partition.systeme.portee1[i];
+				/////////////////////////////////////////////////////////////////////
+				// PARCOURS DE TOUTE LA PARTITION                                  //
+				// pour connaître la taille totale et les tailles de chaque mesure //
+				/////////////////////////////////////////////////////////////////////
 
-				this.measures.push({});
-				this.measures[ i ].num = i+1;
-
-
-
-				// Si le nombre de mesures est trop important
-				// il faut l'adapter
-				if( THIS.systemOk )
+				// Stockage des paramètres communs dans this.measures
+				for( var i = 0; i < allMesPart; i++)
 				{
-					if( mesXML.print &&
-										( mesXML.print[ "_new-system" ] == "yes"
-											||
-										mesXML.print[ "_new-page" ] == "yes" ) )
+					var mesXML;
+
+					// if( this.NB_PORTEES_SYSTEME == 2 )
+					// {
+					// 	if( i%2 == 0 )
+					// 	{
+					// 		mesXML = this.partition.systeme.portee1[i];
+					// 	}
+					// 	else
+					// 	{
+					// 		mesXML = this.partition.systeme.portee2[i];
+					// 	}
+					// }
+					// else
+					// {
+						mesXML = this.partition.systeme.portee1[i];
+					// }
+
+					this.measures.push({});
+					this.measures[ i ].num = i+1;
+
+
+
+					// Si le nombre de mesures est trop important
+					// il faut l'adapter
+					if( THIS.systemOk )
 					{
-						this.measures[ i ].firstOnNewSystem = true;
-						if( i != 0 )
+						if( mesXML.print &&
+											( mesXML.print[ "_new-system" ] == "yes"
+												||
+											mesXML.print[ "_new-page" ] == "yes" ) )
 						{
-							this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
-							this.measures[ i-1 ].lastOnOldSystem = true;
-						} 
+							this.measures[ i ].firstOnNewSystem = true;
+							if( i != 0 )
+							{
+								this.offsetY += this.NB_PORTEES_SYSTEME == 2 ? 250 : 120;
+								this.measures[ i-1 ].lastOnOldSystem = true;
+							} 
+						}
+
+						// Mise à jour de l'offsetY
+						this.measures[ i ].offsetY = this.offsetY;
 					}
 
-					// Mise à jour de l'offsetY
-					this.measures[ i ].offsetY = this.offsetY;
-				}
+					// Passage obligatoire !
+					// Meme si le système est redéfini
+					// (à tout moment le mode peut changer par exemple...)
+					this.loadAttributs( mesXML, this.measures[ i ] );
 
-				// Passage obligatoire !
-				// Meme si le système est redéfini
-				// (à tout moment le mode peut changer par exemple...)
-				this.loadAttributs( mesXML, this.measures[ i ] );
-
-				// La mesure a-telle une marge gauche spécifique ?
-				// (début de système)
-				if( mesXML.print )
-				{
-					if( mesXML.print[ "system-layout" ] )
+					// La mesure a-telle une marge gauche spécifique ?
+					// (début de système)
+					if( mesXML.print )
 					{
-						if( mesXML.print[ "system-layout" ][ "system-margins" ] )
+						if( mesXML.print[ "system-layout" ] )
 						{
-							if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
+							if( mesXML.print[ "system-layout" ][ "system-margins" ] )
 							{
-								this.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
-								this.measures[ i ].hasLeftMargin = true;
-								this.measures[ i ].offsetX = this.leftMargin;
+								if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
+								{
+									this.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
+									this.measures[ i ].hasLeftMargin = true;
+									this.measures[ i ].offsetX = this.leftMargin;
+								}
 							}
 						}
 					}
-				}
 
-				if( !this.measures[ i ].hasLeftMargin && !this.measures[ i ].firstOnNewSystem )
-				{
-					if( i > 0 && mesXML._number != "1" )
+					if( !this.measures[ i ].hasLeftMargin && !this.measures[ i ].firstOnNewSystem )
 					{
-						this.calculOffsetX( i );
+						if( i > 0 && mesXML._number != "1" )
+						{
+							this.calculOffsetX( i );
+						}
 					}
+
+
+					// Mise à jour de l'offsetX
+					if( !this.measures[ i ].hasLeftMargin ) this.measures[ i ].offsetX = this.offsetX;
+
+					mesXML = null;
 				}
-
-
-				// Mise à jour de l'offsetX
-				if( !this.measures[ i ].hasLeftMargin ) this.measures[ i ].offsetX = this.offsetX;
-
-				mesXML = null;
+			}
+			else if( reload && this.responsive )
+			{
+				this.creerMesure( true, reload );
+				return;
 			}
 
 			// Si trop de mesures pour la taille d'écran
@@ -1431,7 +1494,7 @@
 				this.measures.forEach(
 					function( m, i )
 					{
-						if( !THIS.responsive )
+						if( !THIS.responsive && !reload )
 						{
 							var mesXML = THIS.partition.systeme.portee1[i];
 
@@ -1447,6 +1510,10 @@
 							}
 
 							m.width = parseInt( mesXML._width );
+
+							THIS.mesStaticPart.push( THIS.measures );
+
+							console.log( THIS.mesStaticPart );
 						}
 						else
 						{
@@ -1476,7 +1543,7 @@
 			if( this.responsive )
 						THIS.calculLargeur();
 
-			this.creerMesure( true );
+			this.creerMesure( true, reload );
 
 			// Le système a bien été calculé
 			this.systemOk = true;
