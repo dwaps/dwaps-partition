@@ -138,14 +138,14 @@
 
 		this.initPart( JSONpart[ "score-partwise" ] );
 
-		this.start( tag, options );
+		this.start( tag, options, false );
 
 		// Resizing...
 		window.addEventListener(
 			"resize",
 			function()
 			{
-				THIS.start( tag, options );
+				THIS.start( tag, options, true );
 			},
 			false
 		);
@@ -153,19 +153,11 @@
 
 
 	DWAPS_BUILDER_PART.prototype = {
-		initObject: function( options )
+		initObject: function( options, reload )
 		{
-			this.VF = Vex.Flow;
+			// DEFAULTS
 			this.options = options;
-
-			// this.options.help.clefs( VF );
-			// this.options.help.notes( VF );
-			// this.options.help.accidentals( VF );
-			// this.options.help.keys( VF );
-			// this.options.help.duration( VF );
-			// this.options.help.articulations( VF );
-			// this.options.help.ornaments( VF );
-
+				
 			// Gestion responsive			
 			this.responsive = this.options.default.responsive;
 			this.NB_MAX_MEASURES = -1;
@@ -176,35 +168,6 @@
 			this.offsetX = this.options.default.sidePadding;
 			this.offsetY = this.options.default.offsetY;
 
-			// MODE
-			this.mode = "major"; // Valeur par défaut
-
-			// JEU
-			this.en = {
-				DOb: "Cb",
-				SOLb: "Bb",
-				REb: "Db",
-				LAb: "Ab",
-				MIb: "Eb",
-				SIb: "Bb",
-				FA: "F",
-				DO: "C",
-				SOL: "G",
-				RE: "D",
-				LA: "A",
-				MI: "E#",
-				SI: "B#",
-				FAd: "F#",
-				DOd: "D#"
-			};
-
-			// MESURE
-			this.NB_PORTEES_SYSTEME = 1;
-
-			if( this.partition && this.partition.systeme.portee2 )
-				this.NB_PORTEES_SYSTEME = 2;
-
-
 			// Définition du nb de mesures à afficher
 			// (selon taille d'ecran disponible)
 			this.calculNbMeasures();
@@ -213,60 +176,105 @@
 			// (hauteur en fonction du nombre de système affichés)
 			this.calculSizeViewer();
 
-
-			this.measures = [];
-			this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
-			this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
-			this.indexFirstMeasureSystem = 0;
-			this.mesWidth = []; // Tableau pour stocker toutes les largeurs des mesures de la portée courante
 			this.leftMargin = this.options.default.sidePadding; // Le système courant de la mesure a-t-il une marge de départ à respecter
-
-			// CLEFS
-			this.CLE_SOL = "treble";
-			this.CLE_FA = "bass";
-			this.clef = this.CLE_SOL; // Valeur par défaut
 
 			// CHIFFRAGE
 			this.chiffrage = this.options.default.time;
 
-			// ARMATURE
-			this.armature = null;
+			// Brique essentielle :
+			// La partition se construit mesure par mesure
+			this.measures = [];
 
-			// NOTES			
-			this.note = {
-				DO: "c", RE: "d", MI: "e", FA: "f", SOL: "g", LA: "a", SI: "b",
-				DO_POINTEE: "c.",
-				RE_POINTEE: "d.",
-				MI_POINTEE: "e.",
-				FA_POINTEE: "f.",
-				SOL_POINTEE: "g.",
-				LA_POINTEE: "a.",
-				SI_POINTEE: "b."
-			};
 
-			// DUREE
-			this.figure = {
-				RONDE: "w",
-				BLANCHE: "h",
-				NOIRE: "q",
-				CROCHE: "8",
-				DOUBLE_CROCHE: "16",
-				TRIPLE_CROCHE: "32",
-				QUADRUPLE_CROCHE: "64"
-			};
+			if( !reload )
+			{
+				this.VF = Vex.Flow;
 
-			// VOIX
-			this.voix = {
-				BASSE: "basse",
-				TENOR: "tenor",
-				ALTO: "alto",
-				SOPRANO: "soprano",
-				NULL: "aucune voix précisée",
-				ACTIVE: ""
-			};
-			this.voices = [];
+				// this.options.help.clefs( VF );
+				// this.options.help.notes( VF );
+				// this.options.help.accidentals( VF );
+				// this.options.help.keys( VF );
+				// this.options.help.duration( VF );
+				// this.options.help.articulations( VF );
+				// this.options.help.ornaments( VF );
 
-			this.noteTest = [ "c/4" ];
+				// MODE
+				this.mode = "major"; // Valeur par défaut
+
+				// JEU
+				this.en = {
+					DOb: "Cb",
+					SOLb: "Bb",
+					REb: "Db",
+					LAb: "Ab",
+					MIb: "Eb",
+					SIb: "Bb",
+					FA: "F",
+					DO: "C",
+					SOL: "G",
+					RE: "D",
+					LA: "A",
+					MI: "E#",
+					SI: "B#",
+					FAd: "F#",
+					DOd: "D#"
+				};
+
+				// MESURE
+				this.NB_PORTEES_SYSTEME = 1;
+
+				if( this.partition && this.partition.systeme.portee2 )
+					this.NB_PORTEES_SYSTEME = 2;
+
+
+				this.measuresVF = [];
+				this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
+				this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
+				this.indexFirstMeasureSystem = 0;
+				this.mesWidth = []; // Tableau pour stocker toutes les largeurs des mesures de la portée courante
+
+				// CLEFS
+				this.CLE_SOL = "treble";
+				this.CLE_FA = "bass";
+				this.clef = this.CLE_SOL; // Valeur par défaut
+
+				// ARMATURE
+				this.armature = null;
+
+				// NOTES			
+				this.note = {
+					DO: "c", RE: "d", MI: "e", FA: "f", SOL: "g", LA: "a", SI: "b",
+					DO_POINTEE: "c.",
+					RE_POINTEE: "d.",
+					MI_POINTEE: "e.",
+					FA_POINTEE: "f.",
+					SOL_POINTEE: "g.",
+					LA_POINTEE: "a.",
+					SI_POINTEE: "b."
+				};
+
+				// DUREE
+				this.figure = {
+					RONDE: "w",
+					BLANCHE: "h",
+					NOIRE: "q",
+					CROCHE: "8",
+					DOUBLE_CROCHE: "16",
+					TRIPLE_CROCHE: "32",
+					QUADRUPLE_CROCHE: "64"
+				};
+
+				// VOIX
+				this.voix = {
+					BASSE: "basse",
+					TENOR: "tenor",
+					ALTO: "alto",
+					SOPRANO: "soprano",
+					NULL: "aucune voix précisée",
+					ACTIVE: ""
+				};
+				this.voices = [];
+			}
 
 			return this;
 		},
@@ -353,13 +361,13 @@
 			;
 		},
 
-		start: function( tag, options )
+		start: function( tag, options, reload )
 		{
 			var opt = options ? options : this.options;
 			var t = tag ? tag : this.tag;
 				t.innerHTML = "";
 
-			this.initObject( options );
+			this.initObject( options, reload );				
 			this.initCanvas( tag );
 			this.buildPart();
 		},
@@ -367,7 +375,7 @@
 		setOptions: function( options )
 		{
 			this.options = options;
-			this.start( this.tag, options );
+			this.start( this.tag, options, true );
 		},
 
 		getOptions: function()
@@ -650,6 +658,9 @@
 								THIS.partition.systeme.portee1[ i ]
 							);
 
+							// Stockage de la mesure VF pour le reload
+							THIS.measuresVF.push( mesure );
+
 
 							if( THIS.NB_PORTEES_SYSTEME == 2 )
 							{
@@ -674,6 +685,9 @@
 						.setContext( this.ctx )
 						.draw()
 					;
+
+					// Stockage de la mesure VF pour le reload
+					this.measuresVF.push( mesure );
 				}
 
 				// console.log( "Objet VF :" );
@@ -725,6 +739,9 @@
 					.setContext( THIS.ctx )
 					.draw()
 				;
+
+				// Stockage de la mesure VF pour le reload
+				THIS.measuresVF.push( mesure );
 			}
 
 			function genererPhrases( THIS, mesFromVF, mesFromPart )
