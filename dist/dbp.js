@@ -677,11 +677,36 @@
 					}
 					else
 					{
+						var
+							mel = [],
+							cpt = -1 // cpt == index pour la concaténation des voix
+									// S'il y a plusieurs voix, il ne faut ABSOLUMENT PAS changer de mesure !
+						;
+
+						for( var j = 0; j < THIS.mesMelodie.length; j++ )
+						{
+							if(
+								j > 0
+								&&
+								THIS.mesMelodie[ j ][0] == THIS.mesMelodie[ j-1 ][0] // même mesure
+								&&
+								THIS.mesMelodie[ j ][1] == THIS.mesMelodie[ j-1 ][1] // même clef
+							)
+							{
+								mel[ cpt ][2].concat( THIS.mesMelodie[ j-1 ][2] );
+							}
+							else
+							{
+								mel.push( THIS.mesMelodie[ j ] );
+								cpt++;
+							}
+						}
+
 						this.mesVF.forEach(
 							function( m, i )
 							{
 								m.setContext( THIS.ctx ).draw();
-								THIS.VF.Formatter.FormatAndDraw( THIS.ctx, m, THIS.mesMelodie[ i ] );
+								THIS.VF.Formatter.FormatAndDraw( THIS.ctx, m, mel[ i ][2] );
 							}
 						);
 					}
@@ -761,7 +786,7 @@
 				THIS.mesVF.push( mesure );
 			}
 
-			function genererPhrases( porteeSol, mesFromVF, mesFromPart )
+			function genererPhrases( clefIsSol, mesFromVF, mesFromPart )
 			{
 				var
 					notes = [],
@@ -778,7 +803,7 @@
 				mesFromPart.note.forEach(
 					function( n, i )
 					{
-						// if( mesFromPart._number == "5" )
+						// if( mesFromPart._number == "4" )
 						// {
 							notes.push({
 								voix: 	n.voice ? n.voice : "",
@@ -841,8 +866,9 @@
 						case "soprano":
 							agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
 							genererMelodie(
+									mesFromPart._number,
 									mesFromVF,
-									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									clefIsSol,
 									THIS.voix.SOPRANO,
 									phraseSoprano
 							);
@@ -850,8 +876,9 @@
 						case "alto":
 							agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
 							genererMelodie(
+									mesFromPart._number,
 									mesFromVF,
-									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									clefIsSol,
 									THIS.voix.ALTO,
 									phraseAlto
 							);
@@ -859,8 +886,9 @@
 						case "tenor":
 							agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
 							genererMelodie(
+									mesFromPart._number,
 									mesFromVF,
-									porteeSol ? THIS.CLE_SOL : THIS.CLE_FA,
+									clefIsSol,
 									THIS.voix.TENOR,
 									phraseTenor
 							);
@@ -868,8 +896,9 @@
 						case "basse": // Attention : générer portée du dessous !!!
 							agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
 							genererMelodie(
+									mesFromPart._number,
 									mesFromVF,
-									THIS.CLE_FA,
+									clefIsSol,
 									THIS.voix.BASSE,
 									phraseBasse
 							);
@@ -1151,23 +1180,18 @@
 				);
 			}
 
-			function genererMelodie( mes, clef, voix, phrase )
+			function genererMelodie( numMes, mes, clefIsSol, voix, phrase )
 			{
 				if( phrase.length > 0 )
 				{
-					if( voix == THIS.voix.BASSE )
-					{
-					}
-					else
-					{
-						THIS.creerMelodieMesure(
-							mes,
-							clef,
-							THIS.chiffrage,
-							voix,
-							phrase
-						);
-					}
+					THIS.creerMelodieMesure(
+						numMes,
+						mes,
+						clefIsSol,
+						THIS.chiffrage,
+						voix,
+						phrase
+					);
 				}
 			}
 
@@ -1218,9 +1242,13 @@
 			mesureWidth = null;
 		},
 
-		creerMelodieMesure: function( mesureVF, clef, chiffrage, voice, notesAndPositions )
+		creerMelodieMesure: function( numMes, mesureVF, clefIsSol, chiffrage, voice, notesAndPositions )
 		{
-			var melodie = [];
+			var
+				melodie = [],
+				clef = clefIsSol ? this.CLE_SOL : this.CLE_FA
+			;
+
 			this.voix.ACTIVE = voice ? voice : this.voix.ACTIVE;
 
 			for( var i = 0; i < notesAndPositions.length; i++ )
@@ -1248,7 +1276,7 @@
 			);
 
 			this.VF.Formatter.FormatAndDraw( this.ctx, mesureVF, melodie );
-			this.mesMelodie.push( melodie );
+			this.mesMelodie.push( [ numMes, clef, melodie ] );
 		},
 
 		creerNote: function( params )
