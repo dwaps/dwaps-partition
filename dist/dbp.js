@@ -31,7 +31,7 @@
 			sidePadding: 10,
 			offsetY: 40,
 			time: "4/4",
-			responsive: false
+			responsive: true
 		},
 
 		help:
@@ -1373,10 +1373,11 @@
 			return valueToPercent ? p * ( 100 / total ) : ( p / 100 ) * total;
 		},
 
-		sizingMeasures: function( reload )
+		sizingMeasures: function( reload ) // Seule la première portée du système est annalisée pour ce calcul
 		{
 			var
 				THIS = this,
+				paddingLeft = this.options.default.sidePadding,
 				allMesPart = this.partition.systeme.portee1.length,
 				allMesPart = this.NB_PORTEES_SYSTEME == 2 ? allMesPart*2 : allMesPart,
 				mesXML = null,
@@ -1386,7 +1387,7 @@
 				indexMes = 0
 			;
 
-			this.offsetX = this.leftMargin = this.options.default.sidePadding;
+			this.offsetX = this.leftMargin = paddingLeft;
 
 			if( !reload )
 			{
@@ -1424,78 +1425,90 @@
 				mesXML = null;
 			}
 
-
 			// Si trop de mesures pour la taille d'écran
 			// on recalcule la taille et l'offset des mesures
 			// et leur nombre ne doit pas dépasser NB_MAX_MEASURES
 			if( !THIS.systemOk )
 			{
 				var cpt = 0, concatWidth = 0;
+				this.offsetY = this.options.default.offsetY;
 
 				for( var i = 0; i < allMesPart; i++)
 				{
-					this.mesDynamicPart[ i ].firstOnNewSystem = false;
-					this.mesDynamicPart[ i ].lastOnOldSystem = false;
-
-
-					if( i == 0 || ( cpt == this.NB_MAX_MEASURES ) )
+					if( i%2 == 0 )
 					{
-						this.mesDynamicPart[ i ].firstOnNewSystem = true;
+						this.mesDynamicPart[ i ].firstOnNewSystem = false;
+						this.mesDynamicPart[ i ].lastOnOldSystem = false;
 
-						if( i != 0 )
+						if( i == 0 || ( cpt == this.NB_MAX_MEASURES ) )
 						{
-							this.mesDynamicPart[ i-1 ].lastOnOldSystem = true;
-							this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
+							this.mesDynamicPart[ i ].firstOnNewSystem = true;
 
-							// Affectation de la clef et de son équipement
-							defineParams( mesXML, i, false );
+							if( i != 0 )
+							{
+								this.mesDynamicPart[ i-1 ].lastOnOldSystem = true;
+								this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
+
+								// Affectation de la clef et de son équipement
+								defineParams( this.mesDynamicPart[ i ], i, false );
+							}
+
+							cpt = 0;
 						}
 
-						cpt = 0;
+						// Mise à jour de l'offsetY
+						this.mesDynamicPart[ i ].offsetY = this.offsetY;
+
+						// LARGEUR MESURE
+						this.mesDynamicPart[ i ].width = ( window.innerWidth / this.NB_MAX_MEASURES ) - paddingLeft;
+
+						// CALCUL DE L'OFFSETX
+						if( this.mesDynamicPart[ i ].firstOnNewSystem )
+						{
+							this.mesDynamicPart[ i ].offsetX = paddingLeft;
+							concatWidth = 0;
+						}
+						else
+						{
+							concatWidth += this.mesDynamicPart[ i ].width;
+							this.mesDynamicPart[ i ].offsetX = concatWidth + paddingLeft;
+						}
+
+						cpt++;
 					}
-
-					// Mise à jour de l'offsetY
-					this.mesDynamicPart[ i ].offsetY = this.offsetY;
-
-					// LARGEUR MESURE ET OFFSETX
-					this.mesDynamicPart[ i ].width = window.innerWidth / this.NB_MAX_MEASURES;
-
-					// CALCUL DE L'OFFSETX
-					if( this.mesDynamicPart[ i ].firstOnNewSystem )
-						this.mesDynamicPart[ i ].offsetX = THIS.options.default.sidePadding;
-					else
-						this.mesDynamicPart[ i ].offsetX = concatWidth + THIS.options.default.sidePadding;
-
-					concatWidth += this.mesDynamicPart[ i ].width;
-
-
-					cpt++;
 				}
+			}
+			else if( this.responsive )
+			{
+				// Si la taille d'écran permet un redimensionnement en % des mesures  :
+				// calcul des largeurs des mesures en fonction de la taille de l'écran
+				// et mise à jour de l'offsetX de chaque mesure
+				if( this.responsive )
+							THIS.calculLargeur();
 			}
 
 
-			// Si mode responsive activé :
-			// calcul des largeurs des mesures en fonction de la taille de l'écran
-			// et mise à jour de l'offsetX de chaque mesure
-			if( this.responsive )
-						THIS.calculLargeur();
-
 			this.creerMesure( true, reload );
 
-			// Le système a bien été calculé
+			// Le système contient les bons paramètres
 			this.systemOk = true;
+
+			THIS = null;
+			allMesPart = null;
+			mesWidth = null;
+			indexMes = null;
 
 
 			// FONCTIONS
-			function defineParams( mesXML, cpt, firstDefine )
+			function defineParams( mes, cpt, firstDefine )
 			{
 				if( firstDefine )
 				{
 					// La mesure est-elle la première du système ?
-					if( mesXML.print &&
-										( mesXML.print[ "_new-system" ] == "yes"
+					if( mes.print &&
+										( mes.print[ "_new-system" ] == "yes"
 											||
-										mesXML.print[ "_new-page" ] == "yes" ) )
+										mes.print[ "_new-page" ] == "yes" ) )
 					{
 						THIS.mesStaticPart[ cpt ].firstOnNewSystem = true;
 						if( i != 0 )
@@ -1511,15 +1524,15 @@
 
 					// La mesure a-telle une marge gauche spécifique ?
 					// (début de système)
-					if( mesXML.print )
+					if( mes.print )
 					{
-						if( mesXML.print[ "system-layout" ] )
+						if( mes.print[ "system-layout" ] )
 						{
-							if( mesXML.print[ "system-layout" ][ "system-margins" ] )
+							if( mes.print[ "system-layout" ][ "system-margins" ] )
 							{
-								if( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
+								if( mes.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] )
 								{
-									THIS.leftMargin = parseInt( mesXML.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
+									THIS.leftMargin = parseInt( mes.print[ "system-layout" ][ "system-margins" ][ "left-margin" ] );
 									THIS.mesStaticPart[ cpt ].hasLeftMargin = true;
 									THIS.mesStaticPart[ cpt ].offsetX = THIS.leftMargin;
 								}
@@ -1528,28 +1541,28 @@
 					}
 
 					// SI LA MESURE A DES ATTRIBUTS (chiffrage, clef, armature)
-					if( mesXML.attributes )
+					if( mes.attributes )
 					{
-						if( mesXML.attributes.time ) 
+						if( mes.attributes.time ) 
 						{
-							THIS.chiffrage = mesXML.attributes.time.beats + "/" + mesXML.attributes.time[ "beat-type" ];
+							THIS.chiffrage = mes.attributes.time.beats + "/" + mes.attributes.time[ "beat-type" ];
 							THIS.mesStaticPart[ cpt ].chiffrage = THIS.chiffrage;
 						}
-						if( mesXML.attributes.clef ) 
+						if( mes.attributes.clef ) 
 						{
-							THIS.clef = mesXML.attributes.clef.sign == "G" ? THIS.CLE_SOL : THIS.CLE_FA;
+							THIS.clef = mes.attributes.clef.sign == "G" ? THIS.CLE_SOL : THIS.CLE_FA;
 							THIS.mesStaticPart[ cpt ].clef = THIS.clef;
 						}
-						if( mesXML.attributes.key ) 
+						if( mes.attributes.key ) 
 						{
-							if( mesXML.attributes.key.fifths ) 
+							if( mes.attributes.key.fifths ) 
 							{
-								THIS.armature = mesXML.attributes.key.fifths;
+								THIS.armature = mes.attributes.key.fifths;
 								THIS.mesStaticPart[ cpt ].armature = THIS.armature;
 							}
-							if( mesXML.attributes.key.mode ) 
+							if( mes.attributes.key.mode ) 
 							{
-								THIS.mode = mesXML.attributes.key.mode;
+								THIS.mode = mes.attributes.key.mode;
 							}
 						}
 					}
@@ -1557,7 +1570,7 @@
 					// CALCUL DE L'OFFSETX
 					if( !THIS.mesStaticPart[ cpt ].hasLeftMargin && !THIS.mesStaticPart[ cpt ].firstOnNewSystem )
 					{
-						if( cpt > 0 && mesXML._number != "1" )
+						if( cpt > 0 && mes._number != "1" )
 						{
 							THIS.calculOffsetX( cpt );
 						}
@@ -1567,25 +1580,26 @@
 					// Mise à jour de l'offsetX
 					if( !THIS.mesStaticPart[ cpt ].hasLeftMargin ) THIS.mesStaticPart[ cpt ].offsetX = THIS.offsetX;
 
-					THIS.mesStaticPart[ cpt ].width = parseInt( mesXML._width );
+					THIS.mesStaticPart[ cpt ].width = parseInt( mes._width );
 				}
 				else
 				{
-					if( THIS.mesDynamicPart[ cpt ].firstOnNewSystem )
+					mes.clef      = null;
+					mes.chiffrage = null;
+					mes.armature  = null;
+					mes.mode      = null;
+
+					if( mes.firstOnNewSystem )
 					{
 						numSys++;
-						THIS.mesDynamicPart[ cpt ].clef      = THIS.clef;
-						THIS.mesDynamicPart[ cpt ].chiffrage = THIS.chiffrage;
-						THIS.mesDynamicPart[ cpt ].armature  = THIS.armature;
-						THIS.mesDynamicPart[ cpt ].mode      = THIS.mode;
+						mes.clef      = THIS.clef;
+						mes.chiffrage = THIS.chiffrage;
+						mes.armature  = THIS.armature;
+						mes.mode      = THIS.mode;
 					}
 				}
 			}
 
-			THIS = null;
-			allMesPart = null;
-			mesWidth = null;
-			indexMes = null;
 		},
 
 
