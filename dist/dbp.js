@@ -3,7 +3,7 @@
 // require( "x2js" );
 
 // PROBLEME A REGLER !!!!!!!!!!!!!
-// Lors du réagrandissement, la partition dépasse l'écran sur la droite
+// this.mesStaticPart indépendant de this.mesDynamicPart mais probleme d'affichage de this.mesDynamicPart
 
 // PARAMETRES OPTIONNELS
 
@@ -135,6 +135,7 @@
 
 		this.initPart( JSONpart[ "score-partwise" ] );
 
+		this.firstStart = true;
 		this.start( tag, options, false );
 
 		// Resizing...
@@ -181,7 +182,7 @@
 			this.chiffrage = options.default.time;
 
 
-			if( !reload )
+			if( this.firstStart )
 			{
 				this.VF = Vex.Flow;
 
@@ -1383,7 +1384,9 @@
 
 			this.offsetX = this.leftMargin = this.options.default.sidePadding;
 
-			if( !reload )
+			// Au premier démarrage, il faut stocker les paramètres d'origines
+			// des mesures dans this.mesStaticPart
+			if( this.firstStart )
 			{
 				/////////////////////////////////////////////////////////////////////
 				// PARCOURS DE TOUTE LA PARTITION                                  //
@@ -1402,7 +1405,7 @@
 							mesXML = this.partition.systeme.portee1[ cptMes ];
 							this.mesStaticPart[ i ].num = ++cptMes;
 
-							defineParams( mesXML, i, true );
+							defineParams( mesXML, i );
 						}
 						else
 						{
@@ -1414,19 +1417,21 @@
 						mesXML = this.partition.systeme.portee1[ i ];
 					}
 				}
+
+				this.firstStart = false;
 				mesXML = null;
 			}
 
-			// Si trop de mesures pour la taille d'écran (défini si on est en mode responsif)
+			// Si trop de mesures pour la taille d'écran (défini forcément en mode responsif)
 			// on recalcule la taille et l'offset des mesures
 			// et leur nombre ne doit pas dépasser NB_MAX_MEASURES
 			if( this.NB_MAX_MEASURES > 0 )
 			{
-				if( this.mesDynamicPart.length == 0 )
-					this.mesDynamicPart = this.mesStaticPart;
-
+				console.log("this.NB_MAX_MEASURES > 0")
 				var cpt = 0, concatWidth = 0;
-				this.offsetY = this.options.default.offsetY;
+				this.offsetY = this.options.default.offsetY
+
+				initMesDynPart();
 
 				for( var i = 0; i < allMesPart; i++)
 				{
@@ -1441,11 +1446,11 @@
 
 							if( i != 0 )
 							{
-								this.mesDynamicPart[ i-1 ].lastOnOldSystem = true;
+								this.mesDynamicPart[ i-2 ].lastOnOldSystem = true;
 								this.offsetY += this.partition.systeme.portee2 ? 250 : 120;
 
 								// Affectation de la clef et de son équipement
-								defineParams( this.mesDynamicPart[ i ], i, false );
+								defineParams( this.mesDynamicPart[ i ] );
 							}
 
 							cpt = 0;
@@ -1475,10 +1480,24 @@
 			}
 			else if( this.responsive )
 			{
+				console.log("this.NB_MAX_MEASURES < 0")
+				initMesDynPart();
+
 				// Si la taille d'écran permet un redimensionnement en % des mesures  :
 				// calcul des largeurs des mesures en fonction de la taille de l'écran
 				// et mise à jour de l'offsetX de chaque mesure
 				THIS.calculLargFromStaticPart();
+
+				this.mesDynamicPart.forEach(
+					function( m, i )
+					{
+						if( i%2 == 0 )
+						{
+							// Affectation de la clef et de son équipement
+							defineParams( m );
+						}
+					}
+				);
 			}
 
 
@@ -1491,9 +1510,26 @@
 
 
 			// FONCTIONS
-			function defineParams( mes, cpt, firstDefine )
+			function initMesDynPart()
 			{
-				if( firstDefine )
+				THIS.mesDynamicPart = [];
+
+				THIS.mesStaticPart.forEach(
+					function( o, i )
+					{
+						THIS.mesDynamicPart.push({});
+
+						for( var m in o )
+						{
+							THIS.mesDynamicPart[ i ][ m ] = o[ m ];
+						}
+					}
+				);
+			}
+
+			function defineParams( mes, cpt )
+			{
+				if( cpt >= 0 )
 				{
 					// La mesure est-elle la première du système ?
 					if( mes.print &&
@@ -1622,9 +1658,6 @@
 			// 			console.log( "\n" );
 
 
-			this.mesDynamicPart = this.mesStaticPart;
-
-
 			this.mesDynamicPart.forEach(
 				function( m, i )
 				{
@@ -1637,11 +1670,11 @@
 							newSpecialMarginCurrentSys = THIS.calculPercent( false, p, screenSizeWithoutMargins );
 						}
 
-						var cpt = 0, totalSizeCurrentSystem = 0;
+						var cpt = 0, totalSizeCurrentSystem = 0, allCurrentSysMesWidth = [];
 						indexMes = ( m.num == 1 ) ? m.num-1 : m.num*2-2;
 
 
-						for( var j = m.num-1; j < THIS.mesDynamicPart.length; j++ )
+						for( var j = m.num-1; j < THIS.mesStaticPart.length; j++ )
 						{
 							if( j < THIS.partition.systeme.portee1.length )
 							{
@@ -1649,8 +1682,11 @@
 								totalSizeCurrentSystem += allCurrentSysMesWidth[ cpt ];
 								cpt++;
 
-								if( THIS.mesDynamicPart[ indexMes ].lastOnOldSystem )
+								if( THIS.mesStaticPart[ indexMes ].lastOnOldSystem )
+								{
+									console.log( THIS.mesStaticPart[ indexMes ].lastOnOldSystem );
 									break;
+								}
 							}
 
 							indexMes += 2;
@@ -1682,7 +1718,11 @@
 						// console.log( "\n" );
 						// console.log( "Taille des marges à répartir : " + toAdd );
 						// console.log( "Taille de chaque mesure du système courant : " );
-						// console.log( "\t" + allCurrentSysMesWidth );
+						if( i == 0 ) console.log( "\t" + allCurrentSysMesWidth );
+
+
+						if( i != 0 ) THIS.offsetY += THIS.partition.systeme.portee2 ? 250 : 120;
+						else THIS.offsetY = THIS.options.default.offsetY;
 
 						concatWidth = 0;
 						indexMes = ( m.num == 1 ) ? m.num-1 : m.num*2-2;
@@ -1707,6 +1747,9 @@
 								THIS.mesDynamicPart[ indexMes ].offsetX = concatWidth + THIS.options.default.sidePadding;
 							// console.log( "\t\toffsetX mes " + (j+1) + " : " + THIS.mesDynamicPart[ indexMes ].offsetX );
 
+							// Mise à jour de l'offsetY
+							THIS.mesDynamicPart[ indexMes ].offsetY = THIS.offsetY;
+
 							concatWidth += THIS.mesDynamicPart[ indexMes ].width;
 							indexMes += 2;
 						}
@@ -1720,7 +1763,7 @@
 				}
 			);
 
-			// console.log(THIS.mesDynamicPart[14].width)
+			// console.log(THIS.mesStaticPart)
 
 
 			screenSizeWithoutMargins = null;
