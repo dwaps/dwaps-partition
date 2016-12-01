@@ -346,6 +346,8 @@
 
 		initCanvas: function( tag )
 		{
+			this.tag = tag;
+
 			this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
 			this.renderer.resize( this.widthViewer, this.heightViewer  );
 
@@ -362,9 +364,6 @@
 
 		start: function( tag, options, reload )
 		{
-			if( reload && !this.responsive )
-				return;
-
 			var opt = options ? options : this.options;
 			var t = tag;
 				t.innerHTML = "";
@@ -376,7 +375,6 @@
 
 		setOptions: function( options )
 		{
-			this.options = options;
 			this.start( this.tag, options, true );
 		},
 
@@ -1427,7 +1425,6 @@
 			// et leur nombre ne doit pas dépasser NB_MAX_MEASURES
 			if( this.NB_MAX_MEASURES > 0 )
 			{
-				console.log("this.NB_MAX_MEASURES > 0")
 				var cpt = 0, concatWidth = 0;
 				this.offsetY = this.options.default.offsetY
 
@@ -1480,7 +1477,6 @@
 			}
 			else if( this.responsive )
 			{
-				console.log("this.NB_MAX_MEASURES < 0")
 				initMesDynPart();
 
 				// Si la taille d'écran permet un redimensionnement en % des mesures  :
@@ -1683,10 +1679,7 @@
 								cpt++;
 
 								if( THIS.mesStaticPart[ indexMes ].lastOnOldSystem )
-								{
-									console.log( THIS.mesStaticPart[ indexMes ].lastOnOldSystem );
 									break;
-								}
 							}
 
 							indexMes += 2;
@@ -1718,7 +1711,7 @@
 						// console.log( "\n" );
 						// console.log( "Taille des marges à répartir : " + toAdd );
 						// console.log( "Taille de chaque mesure du système courant : " );
-						if( i == 0 ) console.log( "\t" + allCurrentSysMesWidth );
+						// if( i == 0 ) console.log( "\t" + allCurrentSysMesWidth );
 
 
 						if( i != 0 ) THIS.offsetY += THIS.partition.systeme.portee2 ? 250 : 120;
