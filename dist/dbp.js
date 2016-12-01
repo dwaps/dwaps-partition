@@ -172,6 +172,9 @@
 			// (selon taille d'ecran disponible)
 			this.calculNbMeasures();
 
+			// Définition du nombre de portée par système
+			this.NB_PORTEES_SYSTEME = this.partition && this.partition.systeme.portee2 ? 2 : 1;
+
 			// Définition de la taille du viewer
 			// (hauteur en fonction du nombre de système affichés)
 			this.calculSizeViewer();
@@ -215,14 +218,6 @@
 					FAd: "F#",
 					DOd: "D#"
 				};
-
-				// MESURE
-				this.NB_PORTEES_SYSTEME = 1;
-
-				if( this.partition && this.partition.systeme.portee2 )
-					this.NB_PORTEES_SYSTEME = 2;
-
-
 
 				// Brique essentielle :
 				// La partition se construit mesure par mesure
@@ -398,7 +393,7 @@
 				},
 				systeme: {
 					portee1: getMeasureFromJSONpart( 1 ),
-					portee2: JSONpart.part[1] ? getMeasureFromJSONpart( 2 ) : false
+					portee2: JSONpart.part[1] ? getMeasureFromJSONpart( 2 ) : []
 				}
 			};
 
