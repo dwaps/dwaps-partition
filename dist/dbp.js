@@ -28,12 +28,15 @@
 		bgColor: "#eed",
 
 		default: {
-			measureWidth: 500,
-			sidePadding: 10,
-			offsetY: 40,
-			time: "4/4",
-			responsive: true,
-			manualMode: false
+			responsive: true, // Mode adaptatif
+			manualMode: false, // Création manuelle des mesures ou à partir d'un musicxml
+			sidePadding: 10, // Marge de gauche de la page
+			offsetY: 40, // Décalage du premier système depuis le haut de la page
+
+			measureWidth: 500, // Largeur de la mesure par défaut
+			time: "4/4", // Chiffrage par défaut
+
+			colorNotes: "red" // Couleur des notes lors de la lecture audio
 		},
 
 		help:
@@ -238,7 +241,9 @@
 				// ARMATURE
 				this.armature = null;
 
-				// NOTES			
+				// NOTES
+				this.notesVF = []; // Notes clé de sol et éventuellement clé de fa (2eme dimension) (Objet VF)
+				this.notes = []; // Notes clé de sol et éventuellement clé de fa (2eme dimension)
 				this.note = {
 					DO: "c", RE: "d", MI: "e", FA: "f", SOL: "g", LA: "a", SI: "b",
 					DO_POINTEE: "c.",
@@ -268,9 +273,12 @@
 					ALTO: "alto",
 					SOPRANO: "soprano",
 					NULL: "aucune voix précisée",
-					ACTIVE: ""
+					ACTIVE: "" // Pour la lecture audio
 				};
 				this.voices = [];
+
+				// Lecture Audio
+				this.colorNotes = options.default.colorNotes;
 
 				return this;
 			}
@@ -342,7 +350,6 @@
 		initCanvas: function( tag )
 		{
 			this.tag = tag;
-
 			this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
 			this.renderer.resize( this.widthViewer, this.heightViewer  );
 
@@ -490,6 +497,64 @@
 			// else
 			// {
 				this.sizingMeasures( reload );
+
+
+
+
+
+				var cpt = 0;
+				colorNote( true, cpt );
+
+				console.log( THIS.notesVF[ 0 ].numMes )
+				console.log( THIS.notesVF[ 0 ].notes.cleSol )
+				console.log( THIS.notesVF[ 0 ].notes.cleFa )
+
+				function colorNote( yes, i )
+				{
+					if( i < THIS.notesVF.length )
+					{
+						// var
+						// 	svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + THIS.notesVF[ i ][0].attrs.id ),
+						// 	svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + THIS.notesVF[ i ][1].attrs.id ),
+						// 	notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
+						// 	stemClefSol = svgElSol.querySelector( ".vf-stem path" )
+						// 	notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
+						// 	stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+						// ;
+
+						if( yes ) 
+						{
+						// 	for( var j = 0; j < notesClefSol.length; j++ )
+						// 		notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+
+						// 	for( var j = 0; j < notesClefFa.length; j++ )
+						// 		notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+							
+						// 	stemClefSol.setAttribute( "stroke", THIS.colorNotes );
+						// 	stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+
+						// 	setTimeout( function() {
+						// 		colorNote( false, cpt );
+						// 		colorNote( true, ++cpt );
+						// 	}, 500 );
+						}
+						else
+						{
+							// for( var j = 0; j < notesClefSol.length; j++ )
+							// 	notesClefSol[ j ].setAttribute( "fill", "black" );
+
+							// for( var j = 0; j < notesClefFa.length; j++ )
+							// 	notesClefFa[ j ].setAttribute( "fill", "black" );
+
+							// stemClefSol.setAttribute( "stroke", "black" );
+							// stemClefFa.setAttribute( "stroke", "black" );
+						}
+					}
+				}
+
+
+
+
 			// }
 		},
 
@@ -853,7 +918,6 @@
 									mesFromPart._number,
 									mesFromVF,
 									clefIsSol,
-									THIS.voix.SOPRANO,
 									phraseSoprano
 							);
 							break;
@@ -863,7 +927,6 @@
 									mesFromPart._number,
 									mesFromVF,
 									clefIsSol,
-									THIS.voix.ALTO,
 									phraseAlto
 							);
 							break;
@@ -873,7 +936,6 @@
 									mesFromPart._number,
 									mesFromVF,
 									clefIsSol,
-									THIS.voix.TENOR,
 									phraseTenor
 							);
 							break;
@@ -883,7 +945,6 @@
 									mesFromPart._number,
 									mesFromVF,
 									clefIsSol,
-									THIS.voix.BASSE,
 									phraseBasse
 							);
 							break;
@@ -1164,7 +1225,7 @@
 				);
 			}
 
-			function genererMelodie( numMes, mes, clefIsSol, voix, phrase )
+			function genererMelodie( numMes, mes, clefIsSol, phrase )
 			{
 				if( phrase.length > 0 )
 				{
@@ -1173,7 +1234,6 @@
 						mes,
 						clefIsSol,
 						THIS.chiffrage,
-						voix,
 						phrase
 					);
 				}
@@ -1231,14 +1291,12 @@
 			mesureWidth = null;
 		},
 
-		creerMelodieMesure: function( numMes, mesureVF, clefIsSol, chiffrage, voice, notesAndPositions )
+		creerMelodieMesure: function( numMes, mesureVF, clefIsSol, chiffrage, notesAndPositions )
 		{
 			var
 				melodie = [],
 				clef = clefIsSol ? this.CLE_SOL : this.CLE_FA
 			;
-
-			this.voix.ACTIVE = voice ? voice : this.voix.ACTIVE;
 
 			for( var i = 0; i < notesAndPositions.length; i++ )
 			{
@@ -1246,7 +1304,8 @@
 				if( Array.isArray( notesAndPositions[i] ) )
 				{
 					melodie.push(
-						this.creerNote({				
+						this.creerNote({
+							numMes: numMes,
 							measureType: clef,
 							notes: notesAndPositions[i],
 							figureAndStem: notesAndPositions[i]
@@ -1342,6 +1401,36 @@
 				);
 			}
 
+
+			var mesFound = false, index = -1;
+
+			for( var i = 0; i < this.notesVF.length; i++ )
+			{				
+				if(this.notesVF[ i ].numMes == params.numMes )
+				{
+					index = i;
+					mesFound = true;
+					break;
+				}
+			}
+
+			if( !mesFound )
+			{
+				this.notesVF.push({
+					numMes: params.numMes,
+					notes: { cleSol: [], cleFa: [] }
+				});
+
+				index = this.notesVF.length-1;
+			}
+
+			note.voice = params.voice;
+
+			if( measureType == this.CLE_SOL )
+				this.notesVF[ index ].notes.cleSol.push( note );
+			else
+				this.notesVF[ index ].notes.cleFa.push( note );
+
 			return note;
 		},
 
@@ -1352,13 +1441,6 @@
 
 		calculPercent: function( valueToPercent, p, total )
 		{
-			// p = parseInt( p );
-			// total = parseInt( total );
-			if( valueToPercent )
-			{
-				// console.log("true")
-				// console.log(p+1000)
-			}
 			return valueToPercent ? p * ( 100 / total ) : ( p / 100 ) * total;
 		},
 
