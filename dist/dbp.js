@@ -855,6 +855,7 @@
 						// if( mesFromPart._number == "4" )
 						// {
 							notes.push({
+								numMes: parseInt( mesFromPart._number ),
 								voix: 	n.voice ? n.voice : "",
 								pos: 	n.pitch.octave ? parseInt( n.pitch.octave ) : "",
 								figure: n.type ? n.type : "",
@@ -917,6 +918,7 @@
 							THIS.creerMelodieMesure(
 								mesFromPart._number,
 								mesFromVF,
+								notes,
 								clefIsSol,
 								THIS.chiffrage,
 								phraseSoprano
@@ -927,6 +929,7 @@
 							THIS.creerMelodieMesure(
 								mesFromPart._number,
 								mesFromVF,
+								notes,
 								clefIsSol,
 								THIS.chiffrage,
 								phraseAlto
@@ -937,6 +940,7 @@
 							THIS.creerMelodieMesure(
 								mesFromPart._number,
 								mesFromVF,
+								notes,
 								clefIsSol,
 								THIS.chiffrage,
 								phraseTenor
@@ -947,6 +951,7 @@
 							THIS.creerMelodieMesure(
 								mesFromPart._number,
 								mesFromVF,
+								notes,
 								clefIsSol,
 								THIS.chiffrage,
 								phraseBasse
@@ -973,7 +978,7 @@
 				// 	[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
 				// ]
 			// );
-			
+
 				}
 			}
 
@@ -1282,24 +1287,26 @@
 			mesureWidth = null;
 		},
 
-		creerMelodieMesure: function( numMes, mesureVF, clefIsSol, chiffrage, notesAndPositions )
+		// notes == tab d'objet contenant les params de chaque note
+		// notesParams = tab contenant des tableaux de notes agencées spécifiquement pour la création VF
+		creerMelodieMesure: function( numMes, mesureVF, notes, clefIsSol, chiffrage, notesParams )
 		{
 			var
 				melodie = [],
 				clef = clefIsSol ? this.CLE_SOL : this.CLE_FA
 			;
 
-			for( var i = 0; i < notesAndPositions.length; i++ )
+			for( var i = 0; i < notesParams.length; i++ )
 			{
 				// SI LE PARAM COURANT N'EST PAS UN OBJET, ON PEUT CONSTRUIRE LA MELODIE
-				if( Array.isArray( notesAndPositions[i] ) )
+				if( Array.isArray( notesParams[i] ) )
 				{
 					melodie.push(
 						this.creerNote({
+							tabNotes: notes,
 							numMes: numMes,
 							measureType: clef,
-							notes: notesAndPositions[i],
-							figureAndStem: notesAndPositions[i]
+							notesParams: notesParams[i]
 						})
 					);
 				}
@@ -1334,10 +1341,11 @@
 			if( params )
 			{
 				if( params.measureType  )  	measureType = params.measureType;
-				if( params.figureAndStem )
+
+				if( params.notesParams )
 				{
-					figure = params.figureAndStem[0][1];
-					stem = params.figureAndStem[0][3] != "" ? params.figureAndStem[0][3] : 0;
+					figure = params.notesParams[0][1];
+					stem = params.notesParams[0][3] != "" ? params.notesParams[0][3] : 0;
 
 					switch( stem )
 					{
@@ -1348,12 +1356,12 @@
 				}
 			}
 
-			if( params.notes  )
+			if( params.notesParams  )
 			{
 				notes = [];
 
 				// GENERATION DE CHAQUE NOTE AU FORMAT VEXFLOW
-				params.notes.forEach(
+				params.notesParams.forEach(
 					function( n )
 					{
 						if( n[0][0].indexOf( "." ) > -1 )
@@ -1415,7 +1423,7 @@
 				index = this.notesVF.length-1;
 			}
 
-			note.voice = params.voice;
+			// note.voice = ;
 
 			if( measureType == this.CLE_SOL )
 				this.notesVF[ index ].notes.cleSol.push( note );
