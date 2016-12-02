@@ -914,44 +914,66 @@
 					{
 						case "soprano":
 							agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
-							genererMelodie(
-									mesFromPart._number,
-									mesFromVF,
-									clefIsSol,
-									phraseSoprano
+							THIS.creerMelodieMesure(
+								mesFromPart._number,
+								mesFromVF,
+								clefIsSol,
+								THIS.chiffrage,
+								phraseSoprano
 							);
 							break;
 						case "alto":
 							agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
-							genererMelodie(
-									mesFromPart._number,
-									mesFromVF,
-									clefIsSol,
-									phraseAlto
+							THIS.creerMelodieMesure(
+								mesFromPart._number,
+								mesFromVF,
+								clefIsSol,
+								THIS.chiffrage,
+								phraseAlto
 							);
 							break;
 						case "tenor":
 							agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
-							genererMelodie(
-									mesFromPart._number,
-									mesFromVF,
-									clefIsSol,
-									phraseTenor
+							THIS.creerMelodieMesure(
+								mesFromPart._number,
+								mesFromVF,
+								clefIsSol,
+								THIS.chiffrage,
+								phraseTenor
 							);
 							break;
 						case "basse": // Attention : générer portée du dessous !!!
 							agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
-							genererMelodie(
-									mesFromPart._number,
-									mesFromVF,
-									clefIsSol,
-									phraseBasse
+							THIS.creerMelodieMesure(
+								mesFromPart._number,
+								mesFromVF,
+								clefIsSol,
+								THIS.chiffrage,
+								phraseBasse
 							);
 							break;
 
 						case "sansVoix":
 							break;
 					}
+
+			// CREATION DE LA MELODIE DE LA MESURE
+
+			// THIS.creerMelodieMesure(
+			// 	mesure,
+			// 	"2/2",
+			// 	THIS.voix.BASSE,
+				// [
+				// 	[
+				// 		[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
+				// 		[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
+				// 		[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
+				// 	],
+				// 	[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
+				// 	[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
+				// ]
+			// );
+			
 				}
 			}
 
@@ -1224,37 +1246,6 @@
 					}
 				);
 			}
-
-			function genererMelodie( numMes, mes, clefIsSol, phrase )
-			{
-				if( phrase.length > 0 )
-				{
-					THIS.creerMelodieMesure(
-						numMes,
-						mes,
-						clefIsSol,
-						THIS.chiffrage,
-						phrase
-					);
-				}
-			}
-
-			// CREATION DE LA MELODIE DE LA MESURE
-
-			// THIS.creerMelodieMesure(
-			// 	mesure,
-			// 	"2/2",
-			// 	THIS.voix.BASSE,
-				// [
-				// 	[
-				// 		[ THIS.note.LA, THIS.figure.NOIRE, 3 ],
-				// 		[ THIS.note.DO , THIS.figure.NOIRE, 4 ],
-				// 		[ THIS.note.FA , THIS.figure.NOIRE, 4 ]
-				// 	],
-				// 	[[ THIS.note.DO , THIS.figure.NOIRE, 4 ]],
-				// 	[[ THIS.note.RE, THIS.figure.BLANCHE, 5 ]]
-				// ]
-			// );
 
 
 			THIS = null;
