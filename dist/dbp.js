@@ -3,8 +3,6 @@
 // require( "x2js" );
 
 // PROBLEME A REGLER !!!!!!!!!!!!!
-// l 518
-// parcours des notes pour la coloration : revoir le bouclage et la récursion
 
 // PARAMETRES OPTIONNELS
 
@@ -29,7 +27,7 @@
 		bgColor: "#eed",
 
 		default: {
-			responsive: true, // Mode adaptatif
+			responsive: false, // Mode adaptatif
 			manualMode: false, // Création manuelle des mesures ou à partir d'un musicxml
 			sidePadding: 10, // Marge de gauche de la page
 			offsetY: 40, // Décalage du premier système depuis le haut de la page
@@ -228,6 +226,7 @@
 				this.mesStaticPart = [];
 				this.mesDynamicPart = [];
 				this.mesMelodie = [];
+				this.mesVF = []; // Chauque mesure avec ses notes (par clef)
 
 				this.SIZES_SYSTEM_AUTO = true; // Active / Désactive la gestion automatique des sytèmes
 				this.largTotaleMes = 0; // Valeur en pourcentage : si la largTotaleMes > 100 % il faut passer à un autre système
@@ -243,8 +242,6 @@
 				this.armature = null;
 
 				// NOTES
-				this.notesVF = []; // Notes clé de sol et éventuellement clé de fa (2eme dimension) (Objet VF)
-				this.notes = []; // Notes clé de sol et éventuellement clé de fa (2eme dimension)
 				this.note = {
 					DO: "c", RE: "d", MI: "e", FA: "f", SOL: "g", LA: "a", SI: "b",
 					DO_POINTEE: "c.",
@@ -501,91 +498,80 @@
 
 
 
-
-
 				var cpt = 0;
 				colorNotes( true );
 
-				// console.log( THIS.notesVF[ 3 ].numMes )
-				// console.log( THIS.notesVF[ 3 ].notes.cleSol )
-				// console.log( THIS.notesVF[ 3 ].notes.cleFa )
+				// console.log( THIS.mesVF[ 3 ].numMes )
+				// console.log( THIS.mesVF[ 3 ].notes.cleSol )
+				// console.log( THIS.mesVF[ 3 ].notes.cleFa )
 
 				function colorNotes( yes, cptNote, cptMes )
 				{
-					cptNote = cptNote ? cptNote : 0;
-					cptMes = cptMes ? cptMes : 0;
+					// cptNote = cptNote ? cptNote : 0;
+					// cptMes = cptMes ? cptMes : 0;
 
-					var
-						notesVF = THIS.notesVF[ cptMes ].notes,
-						lClefSol = notesVF.cleSol.length,
-						lClefFa = notesVF.cleFa.length
-					;
+					// var
+					// 	mesVF = THIS.mesVF[ cptMes ].notes,
+					// 	lClefSol = mesVF.cleSol.length,
+					// 	lClefFa = mesVF.cleFa.length
+					// ;
 
-					// Calcul de la longeur (nb notes) de la mesure en cours
-					l = lClefSol > lClefFa ? lClefFa : lClefSol;
+					// // Calcul de la longeur (nb notes) de la mesure en cours
+					// l = lClefSol > lClefFa ? lClefFa : lClefSol;
 
-					// if( lClefSol > lClefFa )
+
+					// if( cptNote == l )
 					// {
-					// 	var diff = lClefSol - lClefFa;
+					// 	cptNote = 0;
+					// 	cptMes++;
+					// }
 
-					// 	while( diff >= 0 )
+					// if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
+					// {
+
+					// 	var
+					// 		mesVF = THIS.mesVF[ cptMes ].notes,
+						
+					// 		svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleSol[ cptNote ].attrs.id ),
+					// 		svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleFa[ cptNote ].attrs.id ),
+					// 		notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
+					// 		stemClefSol = svgElSol.querySelector( ".vf-stem path" )
+					// 		notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
+					// 		stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+					// 	;
+
+					// 	if( yes ) 
 					// 	{
-					// 		THIS.notesVF[ cptMes ].notes.clefSol.pop();
-					// 		diff--;
+					// 		for( var j = 0; j < notesClefSol.length; j++ )
+					// 			notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+
+					// 		for( var j = 0; j < notesClefFa.length; j++ )
+					// 			notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+							
+					// 		stemClefSol.setAttribute( "stroke", THIS.colorNotes );
+					// 		stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+
+					// 		setTimeout( function() {
+					// 			colorNotes( false, cptNote, cptMes );
+					// 			colorNotes( true, ++cptNote, cptMes );
+					// 		}, 500 );
+					// 	}
+					// 	else
+					// 	{
+					// 		for( var j = 0; j < notesClefSol.length; j++ )
+					// 			notesClefSol[ j ].setAttribute( "fill", "black" );
+
+					// 		for( var j = 0; j < notesClefFa.length; j++ )
+					// 			notesClefFa[ j ].setAttribute( "fill", "black" );
+
+					// 		stemClefSol.setAttribute( "stroke", "black" );
+					// 		stemClefFa.setAttribute( "stroke", "black" );
 					// 	}
 					// }
-					if( cptNote == l )
-					{
-						cptNote = 0;
-						cptMes++;
-					}
-
-					if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
-					{
-
-						var
-							notesVF = THIS.notesVF[ cptMes ].notes,
-						
-							svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + notesVF.cleSol[ cptNote ].attrs.id ),
-							svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + notesVF.cleFa[ cptNote ].attrs.id ),
-							notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
-							stemClefSol = svgElSol.querySelector( ".vf-stem path" )
-							notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
-							stemClefFa = svgElFa.querySelector( ".vf-stem path" )
-						;
-
-						if( yes ) 
-						{
-							for( var j = 0; j < notesClefSol.length; j++ )
-								notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
-
-							for( var j = 0; j < notesClefFa.length; j++ )
-								notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
-							
-							stemClefSol.setAttribute( "stroke", THIS.colorNotes );
-							stemClefFa.setAttribute( "stroke", THIS.colorNotes );
-
-							setTimeout( function() {
-								colorNotes( false, cptNote, cptMes );
-								colorNotes( true, ++cptNote, cptMes );
-							}, 500 );
-						}
-						else
-						{
-							for( var j = 0; j < notesClefSol.length; j++ )
-								notesClefSol[ j ].setAttribute( "fill", "black" );
-
-							for( var j = 0; j < notesClefFa.length; j++ )
-								notesClefFa[ j ].setAttribute( "fill", "black" );
-
-							stemClefSol.setAttribute( "stroke", "black" );
-							stemClefFa.setAttribute( "stroke", "black" );
-						}
-					}
-					else
-					{
-						colorNotes( true );
-					}
+					// else
+					// {
+					// 	colorNotes( true );
+					// }
 				}
 
 
@@ -756,12 +742,12 @@
 										}
 									}
 									else
-									{
+									{										
 										genererPhrases(
 											true,
 											mesure,
 											THIS.partition.systeme.portee1[ cptMes ]
-										);	
+										);
 									}
 								}
 								else
@@ -1299,6 +1285,96 @@
 			melodie = null;
 		},
 
+		checkDuration: function( num, denom, p )
+		{
+			var
+				duree = 0,
+				THIS = this,
+
+				cptMes = cptMes ? cptMes : 0,
+				cptNote = cptNote ? cptNote : 0,
+
+				div = 0
+			;
+
+			if( Array.isArray( p ) ) // p = tableau mélodie contenant les notes/obj VF
+			{
+				p.forEach(
+					function( n, i )
+					{
+						duree += THIS.checkDuration( num, denom, n.duration );
+
+						// A la fin du parcours des notes
+						// il faut vérifier que la durée totale coïncide avec le chiffrage
+						if( i == p.length-1 && duree <  num )
+						{
+							for( var j = 0; j < p.length; j++ )
+							{
+								switch( p[ j ].duration )
+								{
+									// case THIS.figure.RONDE:
+									// 	div = 1;
+									// 	break;
+									// case THIS.figure.BLANCHE:
+									// 	div = 2;
+									// 	break;
+									case THIS.figure.NOIRE:
+										var nbn = p[ j ].note_heads.length;
+										while( nbn-- > 0 ) p[ j ].addDot( nbn );
+										break;
+									// case THIS.figure.CROCHE:
+									// 	div = 8;
+									// 	break;
+									// case THIS.figure.DOUBLE_CROCHE:
+									// 	div = 16;
+									// 	break;
+									// case THIS.figure.TRIPLE_CROCHE:
+									// 	div = 32;
+									// 	break;
+									// case THIS.figure.QUADRUPLE_CROCHE:
+									// 	div = 64;
+									// 	break;
+								}
+							}
+						}
+						else if( duree == denom )
+						{
+							return;
+						}
+					}
+				);	
+			}
+			else // Sinon p = figure de note
+			{
+				switch( p )
+				{
+					case this.figure.RONDE:
+						div = 1;
+						break;
+					case this.figure.BLANCHE:
+						div = 2;
+						break;
+					case this.figure.NOIRE:
+						div = 4;
+						break;
+					case this.figure.CROCHE:
+						div = 8;
+						break;
+					case this.figure.DOUBLE_CROCHE:
+						div = 16;
+						break;
+					case this.figure.TRIPLE_CROCHE:
+						div = 32;
+						break;
+					case this.figure.QUADRUPLE_CROCHE:
+						div = 64;
+						break;
+				}
+			}
+
+			return denom / div;
+		},
+
 
 		calculOffsetX: function( cptMesure )
 		{
@@ -1356,6 +1432,11 @@
 			this.voices.push(
 				new this.VF.Voice( { num_beats: num, beat_value: denom } ).addTickables( melodie )
 			);
+
+
+
+			// Vérification : total des durées = denom
+			this.checkDuration( num, denom, melodie );
 
 			this.VF.Formatter.FormatAndDraw( this.ctx, mesureVF, melodie );
 			this.mesMelodie.push( [ this.ctx, mesureVF, melodie ] );
@@ -1438,9 +1519,9 @@
 			// avec leur voix, leur clef et leur numéro de mesure
 			var mesFound = false, index = -1;
 
-			for( var i = 0; i < this.notesVF.length; i++ )
+			for( var i = 0; i < this.mesVF.length; i++ )
 			{				
-				if(this.notesVF[ i ].numMes == params.numMes )
+				if(this.mesVF[ i ].numMes == params.numMes )
 				{
 					index = i;
 					mesFound = true;
@@ -1450,21 +1531,21 @@
 
 			if( !mesFound )
 			{
-				this.notesVF.push({
+				this.mesVF.push({
 					numMes: params.numMes,
 					notes: { cleSol: [], cleFa: [] }
 				});
 
-				index = this.notesVF.length-1;
+				index = this.mesVF.length-1;
 			}
 
 			// note.voice = ;
 			// console.log( params.tabNotes[ this.partition.systeme.portee1.length ] );
 
 			if( measureType == this.CLE_SOL )
-				this.notesVF[ index ].notes.cleSol.push( note );
+				this.mesVF[ index ].notes.cleSol.push( note );
 			else
-				this.notesVF[ index ].notes.cleFa.push( note );
+				this.mesVF[ index ].notes.cleFa.push( note );
 
 			return note;
 		},
@@ -1506,6 +1587,12 @@
 				// Stockage des paramètres communs dans this.mesStaticPart
 				for( var i = 0; i < allMesPart; i++)
 				{
+					if( i == 0 )
+					{
+
+
+
+
 					this.mesStaticPart.push({});
 
 					if( this.NB_PORTEES_SYSTEME == 2 )
@@ -1526,6 +1613,15 @@
 					{
 						mesXML = this.partition.systeme.portee1[ i ];
 					}
+
+					console.log( this.mesStaticPart[i] )
+
+
+
+					}
+
+
+
 				}
 
 				this.firstStart = false;
