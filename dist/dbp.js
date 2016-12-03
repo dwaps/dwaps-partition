@@ -3,7 +3,8 @@
 // require( "x2js" );
 
 // PROBLEME A REGLER !!!!!!!!!!!!!
-// this.mesStaticPart indépendant de this.mesDynamicPart mais probleme d'affichage de this.mesDynamicPart
+// l 518
+// parcours des notes pour la coloration : revoir le bouclage et la récursion
 
 // PARAMETRES OPTIONNELS
 
@@ -503,52 +504,87 @@
 
 
 				var cpt = 0;
-				colorNote( true, cpt );
+				colorNotes( true );
 
-				console.log( THIS.notesVF[ 0 ].numMes )
-				console.log( THIS.notesVF[ 0 ].notes.cleSol )
-				console.log( THIS.notesVF[ 0 ].notes.cleFa )
+				// console.log( THIS.notesVF[ 3 ].numMes )
+				// console.log( THIS.notesVF[ 3 ].notes.cleSol )
+				// console.log( THIS.notesVF[ 3 ].notes.cleFa )
 
-				function colorNote( yes, i )
+				function colorNotes( yes, cptNote, cptMes )
 				{
-					if( i < THIS.notesVF.length )
+					cptNote = cptNote ? cptNote : 0;
+					cptMes = cptMes ? cptMes : 0;
+
+					var
+						notesVF = THIS.notesVF[ cptMes ].notes,
+						lClefSol = notesVF.cleSol.length,
+						lClefFa = notesVF.cleFa.length
+					;
+
+					// Calcul de la longeur (nb notes) de la mesure en cours
+					l = lClefSol > lClefFa ? lClefFa : lClefSol;
+
+					// if( lClefSol > lClefFa )
+					// {
+					// 	var diff = lClefSol - lClefFa;
+
+					// 	while( diff >= 0 )
+					// 	{
+					// 		THIS.notesVF[ cptMes ].notes.clefSol.pop();
+					// 		diff--;
+					// 	}
+					// }
+					if( cptNote == l )
 					{
-						// var
-						// 	svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + THIS.notesVF[ i ][0].attrs.id ),
-						// 	svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + THIS.notesVF[ i ][1].attrs.id ),
-						// 	notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
-						// 	stemClefSol = svgElSol.querySelector( ".vf-stem path" )
-						// 	notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
-						// 	stemClefFa = svgElFa.querySelector( ".vf-stem path" )
-						// ;
+						cptNote = 0;
+						cptMes++;
+					}
+
+					if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
+					{
+
+						var
+							notesVF = THIS.notesVF[ cptMes ].notes,
+						
+							svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + notesVF.cleSol[ cptNote ].attrs.id ),
+							svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + notesVF.cleFa[ cptNote ].attrs.id ),
+							notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
+							stemClefSol = svgElSol.querySelector( ".vf-stem path" )
+							notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
+							stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+						;
 
 						if( yes ) 
 						{
-						// 	for( var j = 0; j < notesClefSol.length; j++ )
-						// 		notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+							for( var j = 0; j < notesClefSol.length; j++ )
+								notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
 
-						// 	for( var j = 0; j < notesClefFa.length; j++ )
-						// 		notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+							for( var j = 0; j < notesClefFa.length; j++ )
+								notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
 							
-						// 	stemClefSol.setAttribute( "stroke", THIS.colorNotes );
-						// 	stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+							stemClefSol.setAttribute( "stroke", THIS.colorNotes );
+							stemClefFa.setAttribute( "stroke", THIS.colorNotes );
 
-						// 	setTimeout( function() {
-						// 		colorNote( false, cpt );
-						// 		colorNote( true, ++cpt );
-						// 	}, 500 );
+							setTimeout( function() {
+								colorNotes( false, cptNote, cptMes );
+								colorNotes( true, ++cptNote, cptMes );
+							}, 500 );
 						}
 						else
 						{
-							// for( var j = 0; j < notesClefSol.length; j++ )
-							// 	notesClefSol[ j ].setAttribute( "fill", "black" );
+							for( var j = 0; j < notesClefSol.length; j++ )
+								notesClefSol[ j ].setAttribute( "fill", "black" );
 
-							// for( var j = 0; j < notesClefFa.length; j++ )
-							// 	notesClefFa[ j ].setAttribute( "fill", "black" );
+							for( var j = 0; j < notesClefFa.length; j++ )
+								notesClefFa[ j ].setAttribute( "fill", "black" );
 
-							// stemClefSol.setAttribute( "stroke", "black" );
-							// stemClefFa.setAttribute( "stroke", "black" );
+							stemClefSol.setAttribute( "stroke", "black" );
+							stemClefFa.setAttribute( "stroke", "black" );
 						}
+					}
+					else
+					{
+						colorNotes( true );
 					}
 				}
 
@@ -1380,9 +1416,6 @@
 				);
 			}
 
-			// On vide this.tabNotes qui stockait les
-			// THIS.genererNote( true );
-
 			var note = new this.VF.StaveNote({
 				clef: measureType,
 				keys: notes,
@@ -1401,6 +1434,8 @@
 			}
 
 
+			// Stockage des notes une à une
+			// avec leur voix, leur clef et leur numéro de mesure
 			var mesFound = false, index = -1;
 
 			for( var i = 0; i < this.notesVF.length; i++ )
@@ -1424,6 +1459,7 @@
 			}
 
 			// note.voice = ;
+			// console.log( params.tabNotes[ this.partition.systeme.portee1.length ] );
 
 			if( measureType == this.CLE_SOL )
 				this.notesVF[ index ].notes.cleSol.push( note );
