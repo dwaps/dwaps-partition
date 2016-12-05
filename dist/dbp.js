@@ -2,6 +2,8 @@
 // require( "angular" );
 // require( "x2js" );
 
+// Privilégier utilisation d'EasyScore : https://github.com/0xfe/vexflow/wiki/Using-EasyScore !!!
+
 // PROBLEMES A REGLER !!!!!!!!!!!!!
 // 
 // 
@@ -285,6 +287,9 @@
 				};
 				this.voices = [];
 
+				// ACCORDS
+				this.chords = [];
+
 				// Lecture Audio
 				this.colorNotes = options.default.colorNotes;
 
@@ -506,6 +511,9 @@
 			// {
 				this.sizingMeasures( reload );
 
+				// Verif stockage accords
+				console.log( this.chords[0] )
+
 
 				var cpt = 0;
 				colorNotes( true );
@@ -516,71 +524,71 @@
 
 				function colorNotes( yes, cptNote, cptMes )
 				{
-					// cptNote = cptNote ? cptNote : 0;
-					// cptMes = cptMes ? cptMes : 0;
+					cptNote = cptNote ? cptNote : 0;
+					cptMes = cptMes ? cptMes : 0;
 
-					// var
-					// 	mesVF = THIS.mesVF[ cptMes ].notes,
-					// 	lClefSol = mesVF.cleSol.length,
-					// 	lClefFa = mesVF.cleFa.length
-					// ;
+					var
+						mesVF = THIS.mesVF[ cptMes ].notes,
+						lClefSol = mesVF.cleSol.length,
+						lClefFa = mesVF.cleFa.length
+					;
 
-					// // Calcul de la longeur (nb notes) de la mesure en cours
-					// l = lClefSol > lClefFa ? lClefFa : lClefSol;
+					// Calcul de la longeur (nb notes) de la mesure en cours
+					l = lClefSol > lClefFa ? lClefFa : lClefSol;
 
 
-					// if( cptNote == l )
-					// {
-					// 	cptNote = 0;
-					// 	cptMes++;
-					// }
+					if( cptNote == l )
+					{
+						cptNote = 0;
+						cptMes++;
+					}
 
-					// if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
-					// {
+					if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
+					{
 
-					// 	var
-					// 		mesVF = THIS.mesVF[ cptMes ].notes,
+						var
+							mesVF = THIS.mesVF[ cptMes ].notes,
 						
-					// 		svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleSol[ cptNote ].attrs.id ),
-					// 		svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleFa[ cptNote ].attrs.id ),
-					// 		notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
-					// 		stemClefSol = svgElSol.querySelector( ".vf-stem path" )
-					// 		notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
-					// 		stemClefFa = svgElFa.querySelector( ".vf-stem path" )
-					// 	;
+							svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleSol[ cptNote ].attrs.id ),
+							svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleFa[ cptNote ].attrs.id ),
+							notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
+							stemClefSol = svgElSol.querySelector( ".vf-stem path" )
+							notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
+							stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+						;
 
-					// 	if( yes ) 
-					// 	{
-					// 		for( var j = 0; j < notesClefSol.length; j++ )
-					// 			notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+						if( yes ) 
+						{
+							for( var j = 0; j < notesClefSol.length; j++ )
+								notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
 
-					// 		for( var j = 0; j < notesClefFa.length; j++ )
-					// 			notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+							for( var j = 0; j < notesClefFa.length; j++ )
+								notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
 							
-					// 		stemClefSol.setAttribute( "stroke", THIS.colorNotes );
-					// 		stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+							stemClefSol.setAttribute( "stroke", THIS.colorNotes );
+							stemClefFa.setAttribute( "stroke", THIS.colorNotes );
 
-					// 		setTimeout( function() {
-					// 			colorNotes( false, cptNote, cptMes );
-					// 			colorNotes( true, ++cptNote, cptMes );
-					// 		}, 500 );
-					// 	}
-					// 	else
-					// 	{
-					// 		for( var j = 0; j < notesClefSol.length; j++ )
-					// 			notesClefSol[ j ].setAttribute( "fill", "black" );
+							setTimeout( function() {
+								colorNotes( false, cptNote, cptMes );
+								colorNotes( true, ++cptNote, cptMes );
+							}, 500 );
+						}
+						else
+						{
+							for( var j = 0; j < notesClefSol.length; j++ )
+								notesClefSol[ j ].setAttribute( "fill", "black" );
 
-					// 		for( var j = 0; j < notesClefFa.length; j++ )
-					// 			notesClefFa[ j ].setAttribute( "fill", "black" );
+							for( var j = 0; j < notesClefFa.length; j++ )
+								notesClefFa[ j ].setAttribute( "fill", "black" );
 
-					// 		stemClefSol.setAttribute( "stroke", "black" );
-					// 		stemClefFa.setAttribute( "stroke", "black" );
-					// 	}
-					// }
-					// else
-					// {
-					// 	colorNotes( true );
-					// }
+							stemClefSol.setAttribute( "stroke", "black" );
+							stemClefFa.setAttribute( "stroke", "black" );
+						}
+					}
+					else
+					{
+						colorNotes( true );
+					}
 				}
 
 
@@ -955,6 +963,27 @@
 					// }
 				}
 
+				// Récupération de l'harmonie
+				if( Array.isArray( mesFromPart.harmony ) )
+				{
+					THIS.chords.push([]);
+
+					var l = THIS.chords.length-1;
+
+					mesFromPart.harmony.forEach(
+						function( h )
+						{							
+							if( h.kind == "minor" )
+								THIS.chords[ l ].push( h.root[ "root-step" ] + "m" );
+							else
+								THIS.chords[ l ].push( h.root[ "root-step" ] );
+						}
+					);
+				}
+				else if( mesFromPart.harmony )
+				{
+					THIS.chords.push( [ mesFromPart.harmony.root[ "root-step" ] ] );
+				}
 
 
 				// On vérifie que l'odre des notes est bon
