@@ -2,7 +2,17 @@
 // require( "angular" );
 // require( "x2js" );
 
-// PROBLEME A REGLER !!!!!!!!!!!!!
+// PROBLEMES A REGLER !!!!!!!!!!!!!
+// 
+// 
+// Partition 367 : LES APôTRES INSPIRES... Mesure 13, clé de fa
+// 1/ Il y a 4 offsetX mais celui de 69 (croche, c, pos 3) ne positionne pas bien la note
+// 2/ Cela engendre une non prise en charge du groupe noire-croche (la noire reste pointée alors qu'elle ne le devrait pas !)
+// Tentative de correction : ligne 955
+// 
+// Problème de positionnement de certaines notes :
+// l'idéal serait de réinjecté l'offsetX capturé dans genererPhrase() pour chaque note
+// au moment même de la génération des notes ( VF.Formatter : lignes 765 772 1528)
 
 // PARAMETRES OPTIONNELS
 
@@ -27,7 +37,7 @@
 		bgColor: "#eed",
 
 		default: {
-			responsive: false, // Mode adaptatif
+			responsive: true, // Mode adaptatif
 			manualMode: false, // Création manuelle des mesures ou à partir d'un musicxml
 			sidePadding: 10, // Marge de gauche de la page
 			offsetY: 40, // Décalage du premier système depuis le haut de la page
@@ -183,9 +193,6 @@
 
 			this.leftMargin = options.default.sidePadding; // Le système courant de la mesure a-t-il une marge de départ à respecter
 
-			// CHIFFRAGE
-			this.chiffrage = options.default.time;
-
 
 			if( this.firstStart )
 			{
@@ -237,6 +244,9 @@
 				this.CLE_SOL = "treble";
 				this.CLE_FA = "bass";
 				this.clef = this.CLE_SOL; // Valeur par défaut
+
+				// CHIFFRAGE
+				this.chiffrage = options.default.time;
 
 				// ARMATURE
 				this.armature = null;
@@ -497,7 +507,6 @@
 				this.sizingMeasures( reload );
 
 
-
 				var cpt = 0;
 				colorNotes( true );
 
@@ -742,7 +751,7 @@
 										}
 									}
 									else
-									{										
+									{							
 										genererPhrases(
 											true,
 											mesure,
@@ -871,33 +880,92 @@
 				;
 
 				// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
-				mesFromPart.note.forEach(
-					function( n, i )
-					{
-						// if( mesFromPart._number == "4" )
-						// {
-							notes.push({
-								numMes: parseInt( mesFromPart._number ),
-								voix: 	n.voice ? n.voice : "",
-								pos: 	n.pitch.octave ? parseInt( n.pitch.octave ) : "",
-								figure: n.type ? n.type : "",
-								ton: 	n.pitch.step ? n.pitch.step : "",
-								hampe: 	n.stem ? n.stem : "",
-								paroles: [],
-								offsetX: n[ "_default-x" ]
-							});
+				if( Array.isArray( mesFromPart.note ) )
+				{
+					mesFromPart.note.forEach(
+						function( n, i )
+						{
+							// if( mesFromPart._number == "13" )
+							// {
+								notes.push({
+									numMes: parseInt( mesFromPart._number ),
+									voix: 	n.voice ? n.voice : "",
+									pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
+									figure: n.type ? n.type : "",
+									ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
+									hampe: 	n.stem ? n.stem : "",
+									paroles: [],
+									offsetX: parseInt( n[ "_default-x" ] )
+								});
 
-							if( n.lyric )
-							{
-								for( j = 0; j < n.lyric.length; j++)
+								if( n.lyric )
 								{
-									if( n.lyric[ j ].text != "" )
-										notes[ i ].paroles.push( n.lyric[ j ].text );
+									for( j = 0; j < n.lyric.length; j++)
+									{
+										if( n.lyric[ j ].text != "" )
+											notes[ i ].paroles.push( n.lyric[ j ].text );
+									}
 								}
+
+								// Si une note n'a pas de tonalité exprimée dans le musicxml, on la supprime
+								if( notes[ notes.length-1 ].ton == "" )
+								{
+									notes.pop();
+								}
+
+								// console.log( "Notes récupérées :" )
+								// console.log( notes )
+							// }
+						}
+					);
+				}
+				else
+				{
+					// if( mesFromPart._number == "2" )
+					// {
+						var n = mesFromPart.note;
+
+						notes.push({
+							numMes: parseInt( mesFromPart._number ),
+							voix: 	n.voice ? n.voice : "",
+							pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
+							figure: n.type ? n.type : "",
+							ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
+							hampe: 	n.stem ? n.stem : "",
+							paroles: [],
+							offsetX: parseInt( n[ "_default-x" ] )
+						});
+
+						if( n.lyric )
+						{
+							for( j = 0; j < n.lyric.length; j++)
+							{
+								if( n.lyric[ j ].text != "" )
+									notes[ i ].paroles.push( n.lyric[ j ].text );
 							}
-						// }
-					}
-				);
+						}
+
+						if( notes[ notes.length-1 ].ton == "" )
+						{
+							notes.pop();
+						}
+
+						// console.log( "Note récupérée :" )
+						// console.log( notes )
+					// }
+				}
+
+
+
+				// On vérifie que l'odre des notes est bon
+				// (offsetX : du plus petit au plus grand)
+				// notes.forEach(
+				// 	function( n )
+				// 	{
+				// 		console.log( n )
+				// 	}
+				// );
+
 
 				// AFFECTATION DES VOIX
 				// Chaque voix possède son groupe de notes
@@ -1010,13 +1078,21 @@
 				{
 					switch( note.figure )
 					{
-						// ATTENTION: ici, la figure ne tient pas encore compte du chiffrage !!!
+						// case "whole":
+						// 	note.figure = THIS.figure.RONDE;
+						// 	break;
 						case "half":
 							note.figure = THIS.figure.BLANCHE;
 							break;
 						case "quarter":
 							note.figure = THIS.figure.NOIRE;
 							break;
+						case "eighth":
+							note.figure = THIS.figure.CROCHE;
+							break;
+						// case "sixteenth":
+						// 	note.figure = THIS.figure.DOUBLE_CROCHE;
+						// 	break;
 					}
 
 					switch( note.ton )
@@ -1269,6 +1345,8 @@
 									[ n.ton, n.figure, n.pos, n.hampe ]
 								]);
 							}
+							// console.log( "Phrase générée :" )
+							// console.log( phrase )
 						}
 					}
 				);
@@ -1313,26 +1391,37 @@
 								switch( p[ j ].duration )
 								{
 									// case THIS.figure.RONDE:
-									// 	div = 1;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 									// case THIS.figure.BLANCHE:
-									// 	div = 2;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 									case THIS.figure.NOIRE:
-										var nbn = p[ j ].note_heads.length;
-										while( nbn-- > 0 ) p[ j ].addDot( nbn );
+										if( denom == "8" )
+										{
+											// console.log( "TEST" )
+											// console.log( p[j])
+											var nbn = p[ j ].note_heads.length;
+											while( nbn-- > 0 ) p[ j ].addDot( nbn );
+										}
 										break;
 									// case THIS.figure.CROCHE:
-									// 	div = 8;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 									// case THIS.figure.DOUBLE_CROCHE:
-									// 	div = 16;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 									// case THIS.figure.TRIPLE_CROCHE:
-									// 	div = 32;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 									// case THIS.figure.QUADRUPLE_CROCHE:
-									// 	div = 64;
+									// 	var nbn = p[ j ].note_heads.length;
+									// 	while( nbn-- > 0 ) p[ j ].addDot( nbn );
 									// 	break;
 								}
 							}
@@ -1433,8 +1522,6 @@
 				new this.VF.Voice( { num_beats: num, beat_value: denom } ).addTickables( melodie )
 			);
 
-
-
 			// Vérification : total des durées = denom
 			this.checkDuration( num, denom, melodie );
 
@@ -1481,7 +1568,7 @@
 				params.notesParams.forEach(
 					function( n )
 					{
-						if( n[0][0].indexOf( "." ) > -1 )
+						if( n[0][0] && n[0][0].indexOf( "." ) > -1 )
 						{
 							var n = n[0][0];
 							var tab = n.split(".");
@@ -1502,6 +1589,7 @@
 				keys: notes,
 				duration: figure,
 				stem_direction: stem
+				// playNote: true
 			});
 
 			if( positionsDot.length > 0 && hasDot )
@@ -1538,9 +1626,6 @@
 
 				index = this.mesVF.length-1;
 			}
-
-			// note.voice = ;
-			// console.log( params.tabNotes[ this.partition.systeme.portee1.length ] );
 
 			if( measureType == this.CLE_SOL )
 				this.mesVF[ index ].notes.cleSol.push( note );
@@ -1587,8 +1672,8 @@
 				// Stockage des paramètres communs dans this.mesStaticPart
 				for( var i = 0; i < allMesPart; i++)
 				{
-					if( i == 0 )
-					{
+					// if( i < 34 )
+					// {
 
 
 
@@ -1614,11 +1699,12 @@
 						mesXML = this.partition.systeme.portee1[ i ];
 					}
 
-					console.log( this.mesStaticPart[i] )
+					// console.log( "Dimensions mesure :" )
+					// console.log( this.mesStaticPart[i] )
 
 
 
-					}
+					// }
 
 
 
