@@ -39,6 +39,9 @@
 		bgColor: "#eed",
 
 		default: {
+			location: "lib", // Localisation du dossier dwaps-partition dans le projet depuis index.html
+			resources: "res",
+
 			responsive: true, // Mode adaptatif
 			manualMode: false, // Création manuelle des mesures ou à partir d'un musicxml
 			sidePadding: 10, // Marge de gauche de la page
@@ -133,34 +136,131 @@
 
 
 
-	var DWAPS_BUILDER_PART = function( tag, stringPart )
+	var DWAPS_BUILDER_PART = function( src, stringPart )
 	{
-		// INITIALISATION
-
-		var
-			// d = new DOMParser(),
-			// DOMpart = d.parseFromString( stringPart, "text/xml" ),
-
-			THIS = this,
-
-			x2js = new X2JS(),
-			JSONpart = x2js.xml_str2json( stringPart )
-		;
-
-		this.initPart( JSONpart[ "score-partwise" ] );
-
+		var THIS = this;
 		this.firstStart = true;
-		this.start( tag, options, false );
+
+		if( stringPart )
+		{
+			genererScripts( true );
+
+			// Il faut laisser le temps aux dépendances de se charger correctement...
+			setTimeout(
+				function()
+				{
+					init( src, stringPart );
+				},
+				200
+			);
+		}
+		else // Si non renseigné, on va chercher la partition via Ajax
+		{
+			genererScripts( false );
+
+			var req = new XMLHttpRequest();
+			req.open('GET', options.default.resources+ "/" + src + "msp.xml");
+
+			req.onprogress = function()
+			{
+				console.log( "Chargement de la partition..." );
+			};
+
+			req.onload = function()
+			{
+				setTimeout(
+					function()
+					{
+						init( src, req.responseText );
+					},
+					200
+				);
+			};
+
+			req.send();
+		}
 
 		// Resizing...
 		window.addEventListener(
 			"resize",
 			function()
 			{
-				THIS.start( tag, options, true );
+				THIS.start( src, true );
 			},
 			false
 		);
+
+		//FONCTIONS
+		function init( src, stringPart )
+		{
+			// INITIALISATION
+			var
+				// d = new DOMParser(),
+				// DOMpart = d.parseFromString( stringPart, "text/xml" ),
+
+				x2js = new X2JS(),
+				JSONpart = x2js.xml_str2json( stringPart )
+			;
+
+			THIS.initPart( JSONpart[ "score-partwise" ] );
+			THIS.start( src, options, false );
+		}
+
+		function genererScripts( vexflow )
+		{
+			var
+				script = document.querySelector( "#scriptVex" ),
+				scripts = document.querySelectorAll( "script" ),
+				scriptDBP = null, // contiendra le tag html chargeant dwaps-partition
+				link = document.querySelector( ".linkVex" )
+			;
+
+			// RECUP DU TAG SCRIPT DBP
+			scripts.forEach(
+				function( s )
+				{
+					if( s.src.match( "dwaps-partition" ) )
+						scriptDBP = s;
+				}
+			);
+
+			if( vexflow )
+			{
+				if( !script )
+				{
+					script = document.createElement( "script" );
+					script.id = "scriptVex";
+					scriptDBP.parentNode.insertBefore( script, scriptDBP );
+				}
+				else
+				{
+					document.removeChild( link );
+				}
+
+				script.src = options.default.location + "/dwaps-partition/lib/vexflow/releases/vexflow-debug.js";
+			}
+			else
+			{
+				if( script )
+				{
+					script = script;
+				}
+				else
+				{
+					script = document.createElement( "script" );
+					script.id = "scriptVex";
+					link = document.createElement( "link" );
+					link.id = "linkVex";
+					link.rel = "stylesheet";
+					link.href = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab.css";
+
+					scriptDBP.parentNode.insertBefore( script, scriptDBP );
+					document.head.appendChild( link );
+				}
+
+				script.src = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab-div.js";
+			}
+		}
 	};
 
 
@@ -184,29 +284,32 @@
 
 			// Définition du nb de mesures à afficher
 			// (selon taille d'ecran disponible)
-			this.calculNbMeasures();
+			//this.calculNbMeasures();
 
 			// Définition du nombre de portée par système
 			this.NB_PORTEES_SYSTEME = this.partition && this.partition.systeme.portee2 ? 2 : 1;
 
 			// Définition de la taille du viewer
 			// (hauteur en fonction du nombre de système affichés)
-			this.calculSizeViewer();
+			//this.calculSizeViewer();
 
 			this.leftMargin = options.default.sidePadding; // Le système courant de la mesure a-t-il une marge de départ à respecter
 
 
 			if( this.firstStart )
 			{
-				this.VF = Vex.Flow;
+				if( this.tag instanceof HTMLElement )
+				{
+					this.VF = Vex.Flow;
 
-				// options.help.clefs( VF );
-				// options.help.notes( VF );
-				// options.help.accidentals( VF );
-				// options.help.keys( VF );
-				// options.help.duration( VF );
-				// options.help.articulations( VF );
-				// options.help.ornaments( VF );
+					// options.help.clefs( VF );
+					// options.help.notes( VF );
+					// options.help.accidentals( VF );
+					// options.help.keys( VF );
+					// options.help.duration( VF );
+					// options.help.articulations( VF );
+					// options.help.ornaments( VF );
+				}
 
 				// MODE
 				this.mode = "major"; // Valeur par défaut
@@ -363,6 +466,7 @@
 		initCanvas: function( tag )
 		{
 			this.tag = tag;
+
 			this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
 			this.renderer.resize( this.widthViewer, this.heightViewer  );
 
@@ -377,15 +481,23 @@
 			;
 		},
 
-		start: function( tag, options, reload )
+		start: function( src, options, reload )
 		{
 			var opt = options ? options : this.options;
-			var t = tag;
-				t.innerHTML = "";
 
-			this.initObject( options, reload );				
-			this.initCanvas( tag );
-			this.buildPart( reload );
+
+
+			this.initObject( options, reload );	
+
+			if( src instanceof HTMLElement )
+			{
+				var tag = src;
+					tag.innerHTML = "";
+			
+				this.initCanvas( src );
+			}
+
+			this.buildPart( reload );					
 		},
 
 		setOptions: function( options )
@@ -472,129 +584,198 @@
 			var THIS = this;
 			// var ctx = this.renderer.ctx;
 
+
+
 			
-			// if( !this.responsive )
-			// {
-			// 	var cptMesure = 0;
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+// options scale=1.0
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+// tabstave notation=true tablature=false clef=treble key=G time=2/2
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-				
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+// notes :hG/4:q(F/4.A/4)(G/4.B/4)
+// text :h,.1,.font=Courrier-13-bold,G,:q,D,G
+// text ++,.10,.font=Arial-12-normal,:h,1. Bé-,:q,nis-,sons
+// text ++,.12,:h,2. C'est,:q,ce,grand
+// text ++,.14,3. Mais,tes,fa-
+// text ++,.16,:h,4. Bé-,:q,nis-,sez-
 
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
-			// 	// this.creerMesure( { mesJSON: this.partition.systeme.portee1[ cptMesure ] }, cptMesure++ );
-			// 	cptMesure = null;
-			// }
-			// else
-			// {
-				this.sizingMeasures( reload );
+// options space=80
 
-				// Verif stockage accords
-				console.log( this.chords[0] )
+// tabstave notation=true tablature=false clef=bass key=G time=2/2
+
+// notes :h(G/3.B/3) :q(D/3.D/4) (G/3.D/4)
+
+			var THIS = this;
+
+			if( !this.tag )
+			{
+				var
+					GENERALES_OPTIONS = "options scale=" + 1.0 + " font-face=" + "Verdana",
+					SPACE_SYSTEM_IN = "options space=" + 30,
+					SPACE_SYSTEM_OUT = "options space=" + 100,
+					MARGIN_TOP = "options space=" + 20,
+					MARGIN_BOTTOM = "options space=" + 20,
+					INIT_STAVE = "tabstave notation=" + true +
+								" tablature=" + false +
+								" clef=" + "treble" +
+								" key=" + "G" +
+								" time=" + "2/2",
+					NOTES = "notes ",
+					CHORDS = "text ",
+					TEXT = "text ++,"
+				;
+
+				var viewer = document.createElement( "div" );
+				viewer.className = "vex-tabdiv animated";
+
+				showEditor( true );
+
+				viewer.style.width = "100%";
+
+				editPart( GENERALES_OPTIONS );
+				editPart( MARGIN_TOP );
+				editPart( INIT_STAVE );
+				editPart( MARGIN_BOTTOM );
+
+				showPart();
+			}
+			else
+			{				
+				// if( !this.responsive )
+				// {
+				// 	var cptMesure = 0;
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+					
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	this.creerMesure( this.partition.systeme.portee1[ cptMesure ], false, cptMesure++ );
+				// 	// this.creerMesure( { mesJSON: this.partition.systeme.portee1[ cptMesure ] }, cptMesure++ );
+				// 	cptMesure = null;
+				// }
+				// else
+				// {
+					this.sizingMeasures( reload );
+
+					// Verif stockage accords
+					// console.log( this.tag)
 
 
-				var cpt = 0;
-				colorNotes( true );
+					// colorNotes( true );
 
-				// console.log( THIS.mesVF[ 3 ].numMes )
-				// console.log( THIS.mesVF[ 3 ].notes.cleSol )
-				// console.log( THIS.mesVF[ 3 ].notes.cleFa )
+					// console.log( THIS.mesVF[ 3 ].numMes )
+					// console.log( THIS.mesVF[ 3 ].notes.cleSol )
+					// console.log( THIS.mesVF[ 3 ].notes.cleFa )
 
-				function colorNotes( yes, cptNote, cptMes )
-				{
-					cptNote = cptNote ? cptNote : 0;
-					cptMes = cptMes ? cptMes : 0;
-
-					var
-						mesVF = THIS.mesVF[ cptMes ].notes,
-						lClefSol = mesVF.cleSol.length,
-						lClefFa = mesVF.cleFa.length
-					;
-
-					// Calcul de la longeur (nb notes) de la mesure en cours
-					l = lClefSol > lClefFa ? lClefFa : lClefSol;
-
-
-					if( cptNote == l )
+					function colorNotes( yes, cptNote, cptMes )
 					{
-						cptNote = 0;
-						cptMes++;
-					}
-
-					if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
-					{
+						cptNote = cptNote ? cptNote : 0;
+						cptMes = cptMes ? cptMes : 0;
 
 						var
 							mesVF = THIS.mesVF[ cptMes ].notes,
-						
-							svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleSol[ cptNote ].attrs.id ),
-							svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleFa[ cptNote ].attrs.id ),
-							notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
-							stemClefSol = svgElSol.querySelector( ".vf-stem path" )
-							notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
-							stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+							lClefSol = mesVF.cleSol.length,
+							lClefFa = mesVF.cleFa.length
 						;
 
-						if( yes ) 
+						// Calcul de la longeur (nb notes) de la mesure en cours
+						l = lClefSol > lClefFa ? lClefFa : lClefSol;
+
+
+						if( cptNote == l )
 						{
-							for( var j = 0; j < notesClefSol.length; j++ )
-								notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+							cptNote = 0;
+							cptMes++;
+						}
 
-							for( var j = 0; j < notesClefFa.length; j++ )
-								notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+						if( !cptMes || cptMes < THIS.partition.systeme.portee1.length )
+						{
+
+							var
+								mesVF = THIS.mesVF[ cptMes ].notes,
 							
-							stemClefSol.setAttribute( "stroke", THIS.colorNotes );
-							stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+								svgElSol = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleSol[ cptNote ].attrs.id ),
+								svgElFa = THIS.renderer.ctx.svg.getElementById( "vf-" + mesVF.cleFa[ cptNote ].attrs.id ),
+								notesClefSol = svgElSol.querySelectorAll( ".vf-notehead path" ),
+								stemClefSol = svgElSol.querySelector( ".vf-stem path" )
+								notesClefFa = svgElFa.querySelectorAll( ".vf-notehead path" ),
+								stemClefFa = svgElFa.querySelector( ".vf-stem path" )
+							;
 
-							setTimeout( function() {
-								colorNotes( false, cptNote, cptMes );
-								colorNotes( true, ++cptNote, cptMes );
-							}, 500 );
+							if( yes ) 
+							{
+								for( var j = 0; j < notesClefSol.length; j++ )
+									notesClefSol[ j ].setAttribute( "fill", THIS.colorNotes );
+
+								for( var j = 0; j < notesClefFa.length; j++ )
+									notesClefFa[ j ].setAttribute( "fill", THIS.colorNotes );
+								
+								stemClefSol.setAttribute( "stroke", THIS.colorNotes );
+								stemClefFa.setAttribute( "stroke", THIS.colorNotes );
+
+								setTimeout( function() {
+									colorNotes( false, cptNote, cptMes );
+									colorNotes( true, ++cptNote, cptMes );
+								}, 500 );
+							}
+							else
+							{
+								for( var j = 0; j < notesClefSol.length; j++ )
+									notesClefSol[ j ].setAttribute( "fill", "black" );
+
+								for( var j = 0; j < notesClefFa.length; j++ )
+									notesClefFa[ j ].setAttribute( "fill", "black" );
+
+								stemClefSol.setAttribute( "stroke", "black" );
+								stemClefFa.setAttribute( "stroke", "black" );
+							}
 						}
 						else
 						{
-							for( var j = 0; j < notesClefSol.length; j++ )
-								notesClefSol[ j ].setAttribute( "fill", "black" );
-
-							for( var j = 0; j < notesClefFa.length; j++ )
-								notesClefFa[ j ].setAttribute( "fill", "black" );
-
-							stemClefSol.setAttribute( "stroke", "black" );
-							stemClefFa.setAttribute( "stroke", "black" );
+							colorNotes( true );
 						}
 					}
-					else
-					{
-						colorNotes( true );
-					}
-				}
+				// }
+			}
 
 
+			// FONCTIONS
+			function showEditor( active )
+			{
+				viewer.setAttribute( "editor", active );
+			}
 
+			function editPart( params )
+			{
+				viewer.innerHTML += params + "\n";
+			}
 
-			// }
+			function showPart()
+			{
+				document.body.appendChild( viewer );
+				viewer.className += " fadeIn"; // Le délai d'apparition est réglé dans le css (partition.scss)
+			}
 		},
 
 		creerMesure: function( mesJSON, reload, cptMesure )

@@ -6,7 +6,7 @@
   "ignore": [],
   "dependencies": {
     "vexflow": "^1.2.83",
-    "abdmob/x2js": "^1.2.0"
+    "bootstrap": "^3.3.7"
   },
   "homepage": "https://github.com/dwaps/dwaps-partition",
   "_release": "1.0.0",

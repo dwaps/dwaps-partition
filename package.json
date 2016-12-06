@@ -1,0 +1,38 @@
+{
+  "name": "dwaps-partition",
+  "version": "1.0.0",
+  "description": "Editeur et gestionnaire de partition en ligne",
+  "main": "index.js",
+  "directories": {
+    "example": "examples"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dwaps/dwaps-partition.git"
+  },
+  "keywords": [
+    "dwaps",
+    "dwaps formation",
+    "formation",
+    "Michael",
+    "Cornillon",
+    "Michael Cornillon",
+    "DWAPS",
+    "partition",
+    "music",
+    "notation",
+    "éditeur de partition"
+  ],
+  "author": "DWAPS Formation - Michael Cornillon",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/dwaps/dwaps-partition/issues"
+  },
+  "homepage": "https://github.com/dwaps/dwaps-partition#readme",
+  "dependencies": {
+    "vextab": "^2.0.13"
+  }
+}
