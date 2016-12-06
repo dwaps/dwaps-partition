@@ -6,6 +6,10 @@
 
 // PROBLEMES A REGLER !!!!!!!!!!!!!
 // 
+// l. 998
+// La génération de la clé de Fa en vextab doit se faire APRES l'entière génération de la clé de Sol
+// Ceci un tour chacun
+// 
 // 
 // Partition 367 : LES APôTRES INSPIRES... Mesure 13, clé de fa
 // 1/ Il y a 4 offsetX mais celui de 69 (croche, c, pos 3) ne positionne pas bien la note
@@ -209,6 +213,7 @@
 		function genererScripts( vexflow )
 		{
 			var
+				loading = document.createElement( "div" ),
 				script = document.querySelector( "#scriptVex" ),
 				scripts = document.querySelectorAll( "script" ),
 				scriptDBP = null, // contiendra le tag html chargeant dwaps-partition
@@ -260,6 +265,19 @@
 
 				script.src = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab-div.js";
 			}
+
+			// LOADING STATE (le charger ici permet de donner plus de temps aux scripts précédents pour se charger)
+			THIS.loading = loading;
+			loading.className = "animated";
+			loading.setAttribute( "style", "\
+											position: absolute;\
+											top: 0; bottom: 0;\
+											right: 0; left: 0;\
+											background: rgba( 30, 30, 30, .5 );\
+											z-index: 999999;\
+											" );
+
+			document.body.appendChild( loading );
 		}
 	};
 
@@ -284,14 +302,14 @@
 
 			// Définition du nb de mesures à afficher
 			// (selon taille d'ecran disponible)
-			//this.calculNbMeasures();
+			this.calculNbMeasures();
 
 			// Définition du nombre de portée par système
 			this.NB_PORTEES_SYSTEME = this.partition && this.partition.systeme.portee2 ? 2 : 1;
 
 			// Définition de la taille du viewer
 			// (hauteur en fonction du nombre de système affichés)
-			//this.calculSizeViewer();
+			this.calculSizeViewer();
 
 			this.leftMargin = options.default.sidePadding; // Le système courant de la mesure a-t-il une marge de départ à respecter
 
@@ -310,6 +328,9 @@
 					// options.help.articulations( VF );
 					// options.help.ornaments( VF );
 				}
+
+				// VIEWER PART (init de this.viewerPart)
+				this.createViewerPart();
 
 				// MODE
 				this.mode = "major"; // Valeur par défaut
@@ -485,8 +506,6 @@
 		{
 			var opt = options ? options : this.options;
 
-
-
 			this.initObject( options, reload );	
 
 			if( src instanceof HTMLElement )
@@ -497,7 +516,7 @@
 				this.initCanvas( src );
 			}
 
-			this.buildPart( reload );					
+			this.buildPart( reload );				
 		},
 
 		setOptions: function( options )
@@ -579,67 +598,37 @@
 		// 		" );
 		// },
 
+
+		createViewerPart: function()
+		{
+			if( !this.viewerPart )
+			{
+				this.viewerPart = document.createElement( "div" );
+
+				this.viewerPart.setAttribute( "style", "\
+												-webkit-animation-delay: 1s;\
+												-moz-animation-delay: 1s;\
+												-ms-animation-delay: 1s;\
+												-o-animation-delay: 1s;\
+												animation-delay: 1s;\
+												z-index: 9999;\
+												" );
+			}
+			else
+			{
+				this.viewerPart.className = "";
+			}
+
+			this.viewerPart.className = "vex-tabdiv animated";
+
+			return this.viewerPart;
+		},
+
 		buildPart: function( reload )
 		{
 			var THIS = this;
 			// var ctx = this.renderer.ctx;
 
-
-
-			
-// options scale=1.0
-
-// tabstave notation=true tablature=false clef=treble key=G time=2/2
-
-// notes :hG/4:q(F/4.A/4)(G/4.B/4)
-// text :h,.1,.font=Courrier-13-bold,G,:q,D,G
-// text ++,.10,.font=Arial-12-normal,:h,1. Bé-,:q,nis-,sons
-// text ++,.12,:h,2. C'est,:q,ce,grand
-// text ++,.14,3. Mais,tes,fa-
-// text ++,.16,:h,4. Bé-,:q,nis-,sez-
-
-// options space=80
-
-// tabstave notation=true tablature=false clef=bass key=G time=2/2
-
-// notes :h(G/3.B/3) :q(D/3.D/4) (G/3.D/4)
-
-			var THIS = this;
-
-			if( !this.tag )
-			{
-				var
-					GENERALES_OPTIONS = "options scale=" + 1.0 + " font-face=" + "Verdana",
-					SPACE_SYSTEM_IN = "options space=" + 30,
-					SPACE_SYSTEM_OUT = "options space=" + 100,
-					MARGIN_TOP = "options space=" + 20,
-					MARGIN_BOTTOM = "options space=" + 20,
-					INIT_STAVE = "tabstave notation=" + true +
-								" tablature=" + false +
-								" clef=" + "treble" +
-								" key=" + "G" +
-								" time=" + "2/2",
-					NOTES = "notes ",
-					CHORDS = "text ",
-					TEXT = "text ++,"
-				;
-
-				var viewer = document.createElement( "div" );
-				viewer.className = "vex-tabdiv animated";
-
-				showEditor( true );
-
-				viewer.style.width = "100%";
-
-				editPart( GENERALES_OPTIONS );
-				editPart( MARGIN_TOP );
-				editPart( INIT_STAVE );
-				editPart( MARGIN_BOTTOM );
-
-				showPart();
-			}
-			else
-			{				
 				// if( !this.responsive )
 				// {
 				// 	var cptMesure = 0;
@@ -757,25 +746,7 @@
 						}
 					}
 				// }
-			}
 
-
-			// FONCTIONS
-			function showEditor( active )
-			{
-				viewer.setAttribute( "editor", active );
-			}
-
-			function editPart( params )
-			{
-				viewer.innerHTML += params + "\n";
-			}
-
-			function showPart()
-			{
-				document.body.appendChild( viewer );
-				viewer.className += " fadeIn"; // Le délai d'apparition est réglé dans le css (partition.scss)
-			}
 		},
 
 		creerMesure: function( mesJSON, reload, cptMesure )
@@ -893,100 +864,176 @@
 
 				if( tabMes.length > 0 && !this.manualMode )
 				{
-					tabMes.forEach(
-						function( m, i )
-						{
-							if( THIS.NB_PORTEES_SYSTEME == 2 )
+					if( !this.tag ){
+
+						// INIT PART VEXTAB
+						reloadPart( true );
+
+						// TEST EDITOR
+						showEditor( true );
+
+						// OPTIONS GENERALES
+						editPart( GENERALES_OPTIONS );
+						editPart( MARGIN_TOP );
+					}
+
+						tabMes.forEach(
+							function( m, i )
 							{
-								if( i%2 == 0 )
+								if( this.tag )
 								{
-									mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
-
-									if( m.firstOnNewSystem )
+									if( THIS.NB_PORTEES_SYSTEME == 2 )
 									{
-										// ARMATURE
-										armature = chargerArmature( THIS.armature, THIS );
-										if( !armature ) armature = THIS.armature;
-										mesure.addKeySignature( armature );
-
-										clef = m.clef;
-										if( !clef ) clef = THIS.clef;
-										mesure.addClef( clef );
-
-										chiffrage = m.chiffrage;
-										if( !chiffrage ) chiffrage = THIS.chiffrage;
-										mesure.addTimeSignature( chiffrage );
-
-										// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
-									}
-
-									mesure
-										.setContext( THIS.ctx )
-										.draw()
-									;
-
-									if( reload )
-									{
-										for( var j = 0; j < THIS.mesMelodie.length; j++)
+										if( i%2 == 0 )
 										{
-											if( j%2 == 0 )
+											mesure = new THIS.VF.Stave( m.offsetX, m.offsetY, m.width );
+
+											if( m.firstOnNewSystem )
 											{
-												THIS.VF.Formatter.FormatAndDraw(
-													THIS.mesMelodie[j][0],
-													THIS.mesMelodie[j][1],
-													THIS.mesMelodie[j][2]
+												// ARMATURE
+												armature = chargerArmature( THIS.armature, THIS );
+												if( !armature ) armature = THIS.armature;
+												mesure.addKeySignature( armature );
+
+												clef = m.clef;
+												if( !clef ) clef = THIS.clef;
+												mesure.addClef( clef );
+
+												chiffrage = m.chiffrage;
+												if( !chiffrage ) chiffrage = THIS.chiffrage;
+												mesure.addTimeSignature( chiffrage );
+
+												// if( THIS.mode ) mesure.addKeySignature( THIS.mode );
+											}
+
+											mesure
+												.setContext( THIS.ctx )
+												.draw()
+											;
+
+											if( reload )
+											{
+												for( var j = 0; j < THIS.mesMelodie.length; j++)
+												{
+													if( j%2 == 0 )
+													{
+														THIS.VF.Formatter.FormatAndDraw(
+															THIS.mesMelodie[j][0],
+															THIS.mesMelodie[j][1],
+															THIS.mesMelodie[j][2]
+														);
+													}
+												}
+											}
+											else
+											{							
+												genererPhrases(
+													true,
+													mesure,
+													THIS.partition.systeme.portee1[ cptMes ]
 												);
 											}
 										}
-									}
-									else
-									{							
-										genererPhrases(
-											true,
-											mesure,
-											THIS.partition.systeme.portee1[ cptMes ]
-										);
-									}
-								}
-								else
-								{
-									genererPortee2( tabMes[ i-1 ], armature, clef, chiffrage );
-
-									if( reload )
-									{
-										for( var j = 0; j < THIS.mesMelodie.length; j++)
+										else // Clef de Fa
 										{
-											if( j%2 != 0 )
+											genererPortee2( tabMes[ i-1 ], armature, clef, chiffrage );
+
+											if( reload )
 											{
-												THIS.VF.Formatter.FormatAndDraw(
-													THIS.mesMelodie[j][0],
-													THIS.mesMelodie[j][1],
-													THIS.mesMelodie[j][2]
-												);
+												for( var j = 0; j < THIS.mesMelodie.length; j++)
+												{
+													if( j%2 != 0 )
+													{
+														THIS.VF.Formatter.FormatAndDraw(
+															THIS.mesMelodie[j][0],
+															THIS.mesMelodie[j][1],
+															THIS.mesMelodie[j][2]
+														);
+													}
+												}
 											}
+											else
+											{
+												genererPhrases(
+													false,
+													mesure,
+													THIS.partition.systeme.portee2[ cptMes ]
+												);	
+											}
+
+											cptMes++;
 										}
 									}
-									else
+									else // Une seule portée (clé de Sol par défaut)
 									{
-										genererPhrases(
-											false,
-											mesure,
-											THIS.partition.systeme.portee2[ cptMes ]
-										);	
-									}
 
-									cptMes++;
+									}
+								}
+								else // Construction des mesures grâce à VexTab
+								{
+									if( THIS.NB_PORTEES_SYSTEME == 2 )
+									{
+										if( i%2 == 0 && i <= 4 )
+										{										
+											if( m.firstOnNewSystem )
+											{
+												if( i != 0)
+												{
+													THIS.clef = THIS.CLE_SOL;
+													reloadPart( false );
+													editPart( INIT_STAVE );
+
+													genererPhrases(
+														true,
+														PHRASE_CLE_SOL,
+														cptMes
+													);
+
+													editPart( PHRASE_CLE_SOL );
+												}
+											}
+										}
+										else if( i <= 4 ) // Clef de Fa
+										{										
+											if( i > 0 && tabMes[ i-1 ].firstOnNewSystem )
+											{
+												THIS.clef = THIS.CLE_FA;
+												reloadPart( false );
+												// editPart( INIT_STAVE );
+
+												// genererPhrases(
+												// 	true,
+												// 	PHRASE_CLE_FA,
+												// 	cptMes
+												// );
+
+												// editPart( PHRASE_CLE_FA );
+											}
+										}
+
+										cptMes++;
+									}
+									else // Une seule portée (clé de Sol par défaut)
+									{
+									}
 								}
 							}
-							else // Une seule portée (clé de Sol par défaut)
-							{
+						);
 
-							}
-						}
-					);
+						// CONSTRUCTION PARTITION
+						// editPart( CHORDS + ":h,.1,.font=Courrier-13-bold,G,:q,D,G" )
+						// editPart( TEXT + ":h,1. Bé-,:q,nis-,sons" );
+						// editPart( TEXT + ".12,:h,2. C'est,:q,ce,grand" );
+						// editPart( TEXT + ".14,3. Mais,tes,fa-" );
+						// editPart( TEXT + ".16,:h,4. Bé-,:q,nis-,sez-" );
+
+						// OPTIONS GENERALES
+						editPart( MARGIN_BOTTOM );
+
+						if( !this.tag ) showPart();
 				}
 
-				else // Sinon si on est en mode "création manuelle"
+				else if( this.tag ) // Sinon si on est en mode "création manuelle"
 				{
 					mesure = new this.VF.Stave( offsetX, offsetY, width );
 
@@ -1010,6 +1057,57 @@
 
 
 			// FONCTIONS
+			function reloadPart( start, nbTxt )
+			{
+				nbTxt = nbTxt ? nbTxt : 0;
+
+				SPACE_SYSTEM_IN = "options space=" + (18 * nbTxt);
+				INIT_STAVE = "tabstave notation=" + true +
+							" tablature=" + false +
+							" clef=" + THIS.clef +
+							" key=" + THIS.en.SOL +
+							" time=" + THIS.chiffrage;
+
+				if( start )
+				{
+					var w = THIS.responsive ? window.innerWidth-10 : THIS.partition.infos.page.width;
+
+					GENERALES_OPTIONS = "options scale=" + 1.0 + " font-face=" + "Verdana" + " width=" + w;
+					SPACE_SYSTEM_OUT = "options space=" + 100;
+					MARGIN_TOP = "options space=" + 20;
+					MARGIN_BOTTOM = "options space=" + 20;
+					PHRASE_CLE_SOL = "notes ";
+					PHRASE_CLE_FA = "notes ";
+					CHORDS = "text ";
+					TEXT = "text ++," + ".10" + ",.font=Arial-12-normal,";
+				}
+			}
+
+			function showEditor( active )
+			{
+				THIS.viewerPart.setAttribute( "editor", active );
+			}
+
+			function editPart( params )
+			{
+				THIS.viewerPart.innerHTML += params + "\n";
+			}
+
+			function showPart()
+			{
+				var THAT = THIS;
+
+				document.body.appendChild( THIS.viewerPart );
+				THIS.viewerPart.className += " fadeIn"; // Le délai d'apparition est réglé dans le css (partition.scss)
+				setTimeout(
+					function()
+					{
+						THAT.loading.className += " fadeOut";
+						THAT.loading.style.zIndex = "-1";
+					},
+					1300
+				);
+			}
 
 			function chargerArmature( armature, THIS )
 			{
@@ -1055,7 +1153,7 @@
 				;
 			}
 
-			function genererPhrases( clefIsSol, mesFromVF, mesFromPart )
+			function genererPhrases( clefIsSol, param1, param2 )
 			{
 				var
 					notes = [],
@@ -1065,84 +1163,10 @@
 						tenor: [],
 						basse: [],
 						sansVoix: []
-					}
+					},
+					mesFromVF = phrase = param1, // param1 est tantôt la mes tantôt la phrase vextab à remplir
+					mesFromPart =  indexMes = param2 // parm2 est tantôt la mes tantôt l'index de la dernière de la portée courante
 				;
-
-				// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
-				if( Array.isArray( mesFromPart.note ) )
-				{
-					mesFromPart.note.forEach(
-						function( n, i )
-						{
-							// if( mesFromPart._number == "13" )
-							// {
-								notes.push({
-									numMes: parseInt( mesFromPart._number ),
-									voix: 	n.voice ? n.voice : "",
-									pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
-									figure: n.type ? n.type : "",
-									ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
-									hampe: 	n.stem ? n.stem : "",
-									paroles: [],
-									offsetX: parseInt( n[ "_default-x" ] )
-								});
-
-								if( n.lyric )
-								{
-									for( j = 0; j < n.lyric.length; j++)
-									{
-										if( n.lyric[ j ].text != "" )
-											notes[ i ].paroles.push( n.lyric[ j ].text );
-									}
-								}
-
-								// Si une note n'a pas de tonalité exprimée dans le musicxml, on la supprime
-								if( notes[ notes.length-1 ].ton == "" )
-								{
-									notes.pop();
-								}
-
-								// console.log( "Notes récupérées :" )
-								// console.log( notes )
-							// }
-						}
-					);
-				}
-				else
-				{
-					// if( mesFromPart._number == "2" )
-					// {
-						var n = mesFromPart.note;
-
-						notes.push({
-							numMes: parseInt( mesFromPart._number ),
-							voix: 	n.voice ? n.voice : "",
-							pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
-							figure: n.type ? n.type : "",
-							ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
-							hampe: 	n.stem ? n.stem : "",
-							paroles: [],
-							offsetX: parseInt( n[ "_default-x" ] )
-						});
-
-						if( n.lyric )
-						{
-							for( j = 0; j < n.lyric.length; j++)
-							{
-								if( n.lyric[ j ].text != "" )
-									notes[ i ].paroles.push( n.lyric[ j ].text );
-							}
-						}
-
-						if( notes[ notes.length-1 ].ton == "" )
-						{
-							notes.pop();
-						}
-
-						// console.log( "Note récupérée :" )
-						// console.log( notes )
-					// }
-				}
 
 				// Récupération de l'harmonie
 				if( Array.isArray( mesFromPart.harmony ) )
@@ -1167,100 +1191,352 @@
 				}
 
 
-				// On vérifie que l'odre des notes est bon
-				// (offsetX : du plus petit au plus grand)
-				// notes.forEach(
-				// 	function( n )
-				// 	{
-				// 		console.log( n )
-				// 	}
-				// );
 
+				if( phrase !== 'object' ) // Mode vextab
+				{					
+					PHRASE_CLE_SOL = PHRASE_CLE_FA = "notes ";
+					indexMes = THIS.NB_PORTEES_SYSTEME == 2 ? indexMes/2 : indexMes;
 
-				// AFFECTATION DES VOIX
-				// Chaque voix possède son groupe de notes
-
-				var longestTabIndex = 0;
-
-				notes.forEach(
-					function( n, i )
+					if( clefIsSol )
 					{
-						parserNote( n );
-						longestTabIndex = chargerVoix( mesFromPart, n, i, phrases, longestTabIndex );
+						for( var i = indexMes-THIS.NB_MAX_MEASURES; i < THIS.partition.systeme.portee1.length; i++ )
+						{
+							if( THIS.mesDynamicPart[ i ].lastOnOldSystem )
+								break;
+
+							// Si nouvelle mesure : barre de mesure
+							if( i!= indexMes-THIS.NB_MAX_MEASURES )
+								PHRASE_CLE_SOL += " | ";
+
+							// Parcours des notes de la mesure en cours
+							// => création de la phrase musicale
+							var notes = THIS.partition.systeme.portee1[ i ].note;
+							var
+								phrase = "",
+								figure = "",
+								ton = "",
+								pos = "",
+								offsetX = 0,
+								nextOffsetX = 0,
+								chord = false
+							;
+
+							notes.forEach(
+								function( n, j )
+								{
+									figure = n.type ? n.type : "";
+									ton = n.pitch && n.pitch.step ? n.pitch.step : "";
+									pos = n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "";
+									offsetX = nextOffsetX ? nextOffsetX : parseInt( n[ "_default-x" ] );
+
+									// Conversion des figures au format vextab
+									switch( figure )
+									{
+										case "whole": figure = ":w"; break;
+										case "half": figure = ":h"; break;
+										case "quarter": figure = ":q"; break;
+										case "eighth": figure = ":8"; break;
+										case "16th": figure = ":16"; break;
+										case "32nd": figure = ":32"; break;
+									}
+
+									// Vérification offsetX : détermination des accords
+									if( j+1 < notes.length ) nextOffsetX = parseInt( notes[ j+1 ][ "_default-x" ] );
+									else nextOffsetX = 0;
+
+									if( offsetX == nextOffsetX ) chord = true;
+
+									if( figure != "" && ton != "" && offsetX != "" )
+									{
+										var
+											foundPoint = phrase != "" ?
+													phrase.match(".$").indexOf( "." ) !== -1
+													:
+													false
+										;
+
+										if( chord )
+										{
+											if( foundPoint )
+												phrase += ton + "/" + pos + ".";
+											else
+												phrase += figure + "(" + ton + "/" + pos + ".";				
+										}
+										else
+										{
+											if( foundPoint )
+												phrase += ton + "/" + pos + ")";
+											else
+												phrase += figure + ton + "/" + pos + " ";
+										}
+									}
+
+									chord = false;
+								}
+							);
+
+							PHRASE_CLE_SOL += phrase;
+						}
 					}
-				);
+					else
+					{
+						for( var i = indexMes-THIS.NB_MAX_MEASURES; i < THIS.partition.systeme.portee2.length; i++ )
+						{
+							if( THIS.mesDynamicPart[ i ].lastOnOldSystem )
+								break;
 
-				// LOG
-				// if( mesFromPart._number == "1" )
-				// {
-				// 	console.log( phrases.soprano );
-				// 	console.log( phrases.alto );
-				// 	console.log( phrases.tenor );
-				// 	console.log( phrases.basse );
-				// 	console.log( phrases.sansVoix );
-				// 	console.log( "\n" );
-				// }
+							// Si nouvelle mesure : barre de mesure
+							if( i!= indexMes-THIS.NB_MAX_MEASURES )
+								PHRASE_CLE_FA += " | ";
 
-				// PARCOURS DES VOIX
-				for( var p in phrases )
+							// Parcours des notes de la mesure en cours
+							// => création de la phrase musicale
+							var notes = THIS.partition.systeme.portee2[ i ].note;
+							var
+								phrase = "",
+								figure = "",
+								ton = "",
+								pos = "",
+								offsetX = 0,
+								nextOffsetX = 0,
+								chord = false
+							;
+
+							notes.forEach(
+								function( n, j )
+								{
+									figure = n.type ? n.type : "";
+									ton = n.pitch && n.pitch.step ? n.pitch.step : "";
+									pos = n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "";
+									offsetX = nextOffsetX ? nextOffsetX : parseInt( n[ "_default-x" ] );
+
+									// Conversion des figures au format vextab
+									switch( figure )
+									{
+										case "whole": figure = ":w"; break;
+										case "half": figure = ":h"; break;
+										case "quarter": figure = ":q"; break;
+										case "eighth": figure = ":8"; break;
+										case "16th": figure = ":16"; break;
+										case "32nd": figure = ":32"; break;
+									}
+
+									// Vérification offsetX : détermination des accords
+									if( j+1 < notes.length ) nextOffsetX = parseInt( notes[ j+1 ][ "_default-x" ] );
+									else nextOffsetX = 0;
+
+									if( offsetX == nextOffsetX ) chord = true;
+
+									if( figure != "" && ton != "" && offsetX != "" )
+									{
+										var
+											foundPoint = phrase != "" ?
+													phrase.match(".$").indexOf( "." ) !== -1
+													:
+													false
+										;
+
+										if( chord )
+										{
+											if( foundPoint )
+												phrase += ton + "/" + pos + ".";
+											else
+												phrase += figure + "(" + ton + "/" + pos + ".";				
+										}
+										else
+										{
+											if( foundPoint )
+												phrase += ton + "/" + pos + ")";
+											else
+												phrase += figure + ton + "/" + pos + " ";
+										}
+									}
+
+									chord = false;
+								}
+							);
+
+							PHRASE_CLE_FA += phrase;
+						}
+					}
+				}
+
+
+				else // Mode VexFlow
 				{
-					var
-						phraseSoprano = [],
-						phraseAlto = [],
-						phraseTenor = [],
-						phraseBasse = []
-					;
-
-					switch( p )
+					// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
+					if( Array.isArray( mesFromPart.note ) && mesFromVF === 'object' )
 					{
-						case "soprano":
-							agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
-							THIS.creerMelodieMesure(
-								mesFromPart._number,
-								mesFromVF,
-								notes,
-								clefIsSol,
-								THIS.chiffrage,
-								phraseSoprano
-							);
-							break;
-						case "alto":
-							agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
-							THIS.creerMelodieMesure(
-								mesFromPart._number,
-								mesFromVF,
-								notes,
-								clefIsSol,
-								THIS.chiffrage,
-								phraseAlto
-							);
-							break;
-						case "tenor":
-							agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
-							THIS.creerMelodieMesure(
-								mesFromPart._number,
-								mesFromVF,
-								notes,
-								clefIsSol,
-								THIS.chiffrage,
-								phraseTenor
-							);
-							break;
-						case "basse": // Attention : générer portée du dessous !!!
-							agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
-							THIS.creerMelodieMesure(
-								mesFromPart._number,
-								mesFromVF,
-								notes,
-								clefIsSol,
-								THIS.chiffrage,
-								phraseBasse
-							);
-							break;
+						mesFromPart.note.forEach(
+							function( n, i )
+							{
+								// if( mesFromPart._number == "13" )
+								// {
+									notes.push({
+										numMes: parseInt( mesFromPart._number ),
+										voix: 	n.voice ? n.voice : "",
+										pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
+										figure: n.type ? n.type : "",
+										ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
+										hampe: 	n.stem ? n.stem : "",
+										paroles: [],
+										offsetX: parseInt( n[ "_default-x" ] )
+									});
 
-						case "sansVoix":
-							break;
+									if( n.lyric )
+									{
+										for( j = 0; j < n.lyric.length; j++)
+										{
+											if( n.lyric[ j ].text != "" )
+												notes[ i ].paroles.push( n.lyric[ j ].text );
+										}
+									}
+
+									// Si une note n'a pas de tonalité exprimée dans le musicxml, on la supprime
+									if( notes[ notes.length-1 ].ton == "" )
+									{
+										notes.pop();
+									}
+
+									// console.log( "Notes récupérées :" )
+									// console.log( notes )
+
+								// }
+							}
+						);
 					}
+					else
+					{
+						// if( mesFromPart._number == "2" )
+						// {
+							var n = mesFromPart.note;
+
+							notes.push({
+								numMes: parseInt( mesFromPart._number ),
+								voix: 	n.voice ? n.voice : "",
+								pos: 	n.pitch && n.pitch.octave ? parseInt( n.pitch.octave ) : "",
+								figure: n.type ? n.type : "",
+								ton: 	n.pitch && n.pitch.step ? n.pitch.step : "",
+								hampe: 	n.stem ? n.stem : "",
+								paroles: [],
+								offsetX: parseInt( n[ "_default-x" ] )
+							});
+
+							if( n.lyric )
+							{
+								for( j = 0; j < n.lyric.length; j++)
+								{
+									if( n.lyric[ j ].text != "" )
+										notes[ i ].paroles.push( n.lyric[ j ].text );
+								}
+							}
+
+							if( notes[ notes.length-1 ].ton == "" )
+							{
+								notes.pop();
+							}
+
+							// console.log( "Note récupérée :" )
+							// console.log( notes )
+						// }
+					}
+
+
+					// On vérifie que l'odre des notes est bon
+					// (offsetX : du plus petit au plus grand)
+					// notes.forEach(
+					// 	function( n )
+					// 	{
+					// 		console.log( n )
+					// 	}
+					// );
+
+
+					// AFFECTATION DES VOIX
+					// Chaque voix possède son groupe de notes
+
+					var longestTabIndex = 0;
+
+					notes.forEach(
+						function( n, i )
+						{
+							parserNote( n );
+							longestTabIndex = chargerVoix( mesFromPart, n, i, phrases, longestTabIndex );
+						}
+					);
+
+					// LOG
+					// if( mesFromPart._number == "1" )
+					// {
+					// 	console.log( phrases.soprano );
+					// 	console.log( phrases.alto );
+					// 	console.log( phrases.tenor );
+					// 	console.log( phrases.basse );
+					// 	console.log( phrases.sansVoix );
+					// 	console.log( "\n" );
+					// }
+
+					// PARCOURS DES VOIX
+					for( var p in phrases )
+					{
+						var
+							phraseSoprano = [],
+							phraseAlto = [],
+							phraseTenor = [],
+							phraseBasse = []
+						;
+
+						switch( p )
+						{
+							case "soprano":
+								agencementNotes( phrases.soprano, phrases.sansVoix, phraseSoprano );
+								THIS.creerMelodieMesure(
+									mesFromPart._number,
+									mesFromVF,
+									notes,
+									clefIsSol,
+									THIS.chiffrage,
+									phraseSoprano
+								);
+								break;
+							case "alto":
+								agencementNotes( phrases.alto, phrases.sansVoix, phraseAlto );
+								THIS.creerMelodieMesure(
+									mesFromPart._number,
+									mesFromVF,
+									notes,
+									clefIsSol,
+									THIS.chiffrage,
+									phraseAlto
+								);
+								break;
+							case "tenor":
+								agencementNotes( phrases.tenor, phrases.sansVoix, phraseTenor );
+								THIS.creerMelodieMesure(
+									mesFromPart._number,
+									mesFromVF,
+									notes,
+									clefIsSol,
+									THIS.chiffrage,
+									phraseTenor
+								);
+								break;
+							case "basse": // Attention : générer portée du dessous !!!
+								agencementNotes( phrases.basse, phrases.sansVoix, phraseBasse );
+								THIS.creerMelodieMesure(
+									mesFromPart._number,
+									mesFromVF,
+									notes,
+									clefIsSol,
+									THIS.chiffrage,
+									phraseBasse
+								);
+								break;
+
+							case "sansVoix":
+								break;
+						}	
+				}
 
 			// CREATION DE LA MELODIE DE LA MESURE
 
@@ -1912,8 +2188,6 @@
 					// console.log( "Dimensions mesure :" )
 					// console.log( this.mesStaticPart[i] )
 
-
-
 					// }
 
 
@@ -1979,7 +2253,7 @@
 					}
 				}
 			}
-			else if( this.responsive )
+			else if( this.responsive && this.tag )
 			{
 				initMesDynPart();
 
