@@ -24,14 +24,11 @@
 
 	var options = {
 
+		debugMode: true, // autorise ou non le chargement des dépendances minifiées
+
 		use:
 		{
 			angular: true
-		},
-
-		canvas: {
-			width: window.innerWidth,
-			height: window.innerHeight
 		},
 
 		font: {
@@ -218,7 +215,8 @@
 				scripts = document.querySelectorAll( "script" ),
 				scriptDBP = null, // contiendra le balise script chargeant dwaps-partition
 				scriptX2JS = document.querySelector( "#scriptX2JS" ), // contiendra le balise script chargeant x2js
-				link = document.querySelector( ".linkVex" ) // utile uniquement avec vextab sinon on supprime
+				link = document.querySelector( ".linkVex" ), // utile uniquement avec vextab sinon on supprime
+				isDebug = ""
 			;
 
 			// RECUP DU TAG SCRIPT DBP
@@ -233,7 +231,11 @@
 				// création balise scriptX2JS : src => x2js
 				scriptX2JS = document.createElement( "script" );
 				scriptX2JS.id = "scriptX2JS";
-				scriptX2JS.src = options.default.location + "/dwaps-partition/lib/abdmob/x2js/xml2json.min.js";
+
+				isDebug = options.debugMode ? "" : ".min"
+				scriptX2JS.src = options.default.location
+									+ "/dwaps-partition/lib/abdmob/x2js/xml2json"
+								+ isDebug + ".js";
 
 				scriptDBP.parentNode.insertBefore( scriptX2JS, scriptDBP );
 			}
@@ -252,7 +254,10 @@
 					document.removeChild( link );
 				}
 
-				script.src = options.default.location + "/dwaps-partition/node_modules/vexflow/releases/vexflow-debug.js";
+				isDebug = options.debugMode ? "debug" : "min"
+				script.src = options.default.location
+								+ "/dwaps-partition/node_modules/vexflow/releases/vexflow-"
+								+ isDebug + ".js";
 			}
 			else // on travail avec vextab
 			{
