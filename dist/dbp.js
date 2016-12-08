@@ -213,11 +213,11 @@
 		function genererScripts( vexflow )
 		{
 			var
-				loading = document.createElement( "div" ),
+				loading = document.querySelector( "#loading" ),
 				script = document.querySelector( "#scriptVex" ), // si existe déjà, éviter de la récreer !
 				scripts = document.querySelectorAll( "script" ),
 				scriptDBP = null, // contiendra le balise script chargeant dwaps-partition
-				scriptX2JS = null, // contiendra le balise script chargeant x2js
+				scriptX2JS = document.querySelector( "#scriptX2JS" ), // contiendra le balise script chargeant x2js
 				link = document.querySelector( ".linkVex" ) // utile uniquement avec vextab sinon on supprime
 			;
 
@@ -228,6 +228,17 @@
 					scriptDBP = scripts[ i ];
 			}
 
+			if( !scriptX2JS )
+			{
+				// création balise scriptX2JS : src => x2js
+				scriptX2JS = document.createElement( "script" );
+				scriptX2JS.id = "scriptX2JS";
+				scriptX2JS.src = options.default.location + "/dwaps-partition/lib/abdmob/x2js/xml2json.min.js";
+
+				scriptDBP.parentNode.insertBefore( scriptX2JS, scriptDBP );
+			}
+
+
 			if( vexflow )
 			{
 				if( !script )
@@ -235,14 +246,13 @@
 					// création balise script : src => vexflow
 					script = document.createElement( "script" );
 					script.id = "scriptVex";
-					scriptDBP.parentNode.insertBefore( script, scriptDBP );
 				}
 				else // linkVex existe forcément (voir création de script plus bas)
 				{
 					document.removeChild( link );
 				}
 
-				script.src = options.default.location + "/dwaps-partition/lib/vexflow/releases/vexflow-debug.js";
+				script.src = options.default.location + "/dwaps-partition/node_modules/vexflow/releases/vexflow-debug.js";
 			}
 			else // on travail avec vextab
 			{
@@ -255,7 +265,6 @@
 					// création balise script : src => vextab
 					script = document.createElement( "script" );
 					script.id = "scriptVex";
-					scriptDBP.parentNode.insertBefore( script, scriptDBP );
 
 					// création balise link : href => vextab.css
 					link = document.createElement( "link" );
@@ -263,35 +272,36 @@
 					link.rel = "stylesheet";
 					link.href = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab.css";
 					document.head.appendChild( link );
-
-					// création balise script : src => x2js
-					scriptX2JS = script.cloneNode( false );
-					scriptX2JS.id = "";
-					scriptX2JS.src = options.default.location + "/dwaps-partition/lib/abdmob/x2js/xml2json.min.js";
-					scriptDBP.parentNode.insertBefore( scriptX2JS, scriptDBP );
 				}
 
 				script.src = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab-div.js";
 			}
 
-			// LOADING STATE (le charger ici permet de donner plus de temps aux scripts précédents pour se charger)
-			THIS.loading = loading;
-			loading.className = "animated";
-			loading.setAttribute( "style", "\
-											position: absolute;\
-											top: 0; bottom: 0;\
-											right: 0; left: 0;\
-											background: rgba( 30, 30, 30, .5 );\
-											z-index: 999999;\
-											" );
+			// Intégration du script vexflow|vextab dans le DOM
+			scriptDBP.parentNode.insertBefore( script, scriptDBP );
 
-			document.body.appendChild( loading );
+			// LOADING STATE (le charger ici permet de donner plus de temps aux scripts précédents pour se charger)
+			if( !loading )
+			{
+				loading = document.createElement( "div" );
+				loading.id = "loading";
+				loading.className = "animated";
+				loading.setAttribute( "style", "\
+												position: absolute;\
+												top: 0; bottom: 0;\
+												right: 0; left: 0;\
+												background: rgba( 30, 30, 30, .5 );\
+												z-index: 999999;\
+												" );
+				THIS.loading = loading;
+				document.body.appendChild( loading );
+			}
 		}
 	};
 
 
 	DWAPS_BUILDER_PART.prototype = {
-		initObject: function( options, reload )
+		initObject: function( options, src, reload )
 		{
 			// DEFAULTS
 			this.options = options;
@@ -324,8 +334,9 @@
 
 			if( this.firstStart )
 			{
-				if( this.tag instanceof HTMLElement )
+				if( src instanceof HTMLElement )
 				{
+					this.tag = src;
 					this.VF = Vex.Flow;
 
 					// options.help.clefs( VF );
@@ -492,11 +503,9 @@
 			this.heightViewer = h;
 		},
 
-		initCanvas: function( tag )
+		initCanvas: function()
 		{
-			this.tag = tag;
-
-			this.renderer = new this.VF.Renderer( tag, this.VF.Renderer.Backends.SVG );
+			this.renderer = new this.VF.Renderer( this.tag, this.VF.Renderer.Backends.SVG );
 			this.renderer.resize( this.widthViewer, this.heightViewer  );
 
 			this.ctx = this.renderer.getContext();
@@ -514,14 +523,12 @@
 		{
 			var opt = options ? options : this.options;
 
-			this.initObject( options, reload );	
+			this.initObject( options, src, reload );	
 
 			if( src instanceof HTMLElement )
 			{
-				var tag = src;
-					tag.innerHTML = "";
-			
-				this.initCanvas( src );
+				src.innerHTML = "";			
+				this.initCanvas();
 			}
 
 			this.buildPart( reload );				
@@ -630,6 +637,28 @@
 			this.viewerPart.className = "vex-tabdiv animated";
 
 			return this.viewerPart;
+		},
+
+		hideLoading: function( delay )
+		{
+			var THIS = this;
+
+			setTimeout(
+				function()
+				{
+					THIS.loading.className += " fadeOut";
+
+					// On doit attendre la fin du fadeOut pour positionner le filtre derrière
+					setTimeout(
+						function()
+						{
+							THIS.loading.style.zIndex = "-1";
+						},
+						delay
+					);
+				},
+				delay
+			);
 		},
 
 		buildPart: function( reload )
@@ -767,7 +796,8 @@
 				chiffrage = null,
 				armature = null,
 				mode = null,
-				melodie = []
+				melodie = [],
+				delay = 0; // Pour la disparition du loading (en vexflow pas besoin de délai)
 			;
 
 			if( !this.responsive && mesJSON && cptMesure >= 0 ) // Premier appel à la construction de la mesure
@@ -888,7 +918,7 @@
 						tabMes.forEach(
 							function( m, i )
 							{
-								if( this.tag )
+								if( THIS.tag )
 								{
 									if( THIS.NB_PORTEES_SYSTEME == 2 )
 									{
@@ -1035,10 +1065,16 @@
 						// editPart( TEXT + ".14,3. Mais,tes,fa-" );
 						// editPart( TEXT + ".16,:h,4. Bé-,:q,nis-,sez-" );
 
-						// OPTIONS GENERALES
-						editPart( MARGIN_BOTTOM );
 
-						if( !this.tag ) showPart();
+						if( !this.tag ) // Si on dépendance = vextab
+						{
+							// OPTIONS GENERALES
+							editPart( MARGIN_BOTTOM );
+							showPart();
+							delay = 1300;
+						}
+
+						this.hideLoading( delay );
 				}
 
 				else if( this.tag ) // Sinon si on est en mode "création manuelle"
@@ -1058,9 +1094,6 @@
 						.draw()
 					;
 				}
-
-				// console.log( "Objet VF :" );
-				// console.log( this.VF );
 			}
 
 
@@ -1103,18 +1136,8 @@
 
 			function showPart()
 			{
-				var THAT = THIS;
-
 				document.body.appendChild( THIS.viewerPart );
 				THIS.viewerPart.className += " fadeIn"; // Le délai d'apparition est réglé dans le css (partition.scss)
-				setTimeout(
-					function()
-					{
-						THAT.loading.className += " fadeOut";
-						THAT.loading.style.zIndex = "-1";
-					},
-					1300
-				);
 			}
 
 			function chargerArmature( armature, THIS )
