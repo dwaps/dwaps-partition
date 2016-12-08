@@ -43,7 +43,7 @@
 		bgColor: "#eed",
 
 		default: {
-			location: "lib", // Localisation du dossier dwaps-partition dans le projet depuis index.html
+			location: "lib", // Localisation du dossier dwaps-partition depuis index.html
 			resources: "res",
 
 			responsive: true, // Mode adaptatif
@@ -214,37 +214,37 @@
 		{
 			var
 				loading = document.createElement( "div" ),
-				script = document.querySelector( "#scriptVex" ),
+				script = document.querySelector( "#scriptVex" ), // si existe déjà, éviter de la récreer !
 				scripts = document.querySelectorAll( "script" ),
-				scriptDBP = null, // contiendra le tag html chargeant dwaps-partition
-				link = document.querySelector( ".linkVex" )
+				scriptDBP = null, // contiendra le balise script chargeant dwaps-partition
+				scriptX2JS = null, // contiendra le balise script chargeant x2js
+				link = document.querySelector( ".linkVex" ) // utile uniquement avec vextab sinon on supprime
 			;
 
 			// RECUP DU TAG SCRIPT DBP
-			scripts.forEach(
-				function( s )
-				{
-					if( s.src.match( "dwaps-partition" ) )
-						scriptDBP = s;
-				}
-			);
+			for( var i = 0; i < scripts.length; i++ )
+			{
+				if( scripts[ i ].src.match( "dwaps-partition" ) )
+					scriptDBP = scripts[ i ];
+			}
 
 			if( vexflow )
 			{
 				if( !script )
 				{
+					// création balise script : src => vexflow
 					script = document.createElement( "script" );
 					script.id = "scriptVex";
 					scriptDBP.parentNode.insertBefore( script, scriptDBP );
 				}
-				else
+				else // linkVex existe forcément (voir création de script plus bas)
 				{
 					document.removeChild( link );
 				}
 
 				script.src = options.default.location + "/dwaps-partition/lib/vexflow/releases/vexflow-debug.js";
 			}
-			else
+			else // on travail avec vextab
 			{
 				if( script )
 				{
@@ -252,15 +252,23 @@
 				}
 				else
 				{
+					// création balise script : src => vextab
 					script = document.createElement( "script" );
 					script.id = "scriptVex";
+					scriptDBP.parentNode.insertBefore( script, scriptDBP );
+
+					// création balise link : href => vextab.css
 					link = document.createElement( "link" );
 					link.id = "linkVex";
 					link.rel = "stylesheet";
 					link.href = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab.css";
-
-					scriptDBP.parentNode.insertBefore( script, scriptDBP );
 					document.head.appendChild( link );
+
+					// création balise script : src => x2js
+					scriptX2JS = script.cloneNode( false );
+					scriptX2JS.id = "";
+					scriptX2JS.src = options.default.location + "/dwaps-partition/lib/abdmob/x2js/xml2json.min.js";
+					scriptDBP.parentNode.insertBefore( scriptX2JS, scriptDBP );
 				}
 
 				script.src = options.default.location + "/dwaps-partition/node_modules/vextab/releases/vextab-div.js";

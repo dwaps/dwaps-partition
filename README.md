@@ -24,13 +24,22 @@ _Deux possibilités d'usage :_
 
 3/ Installer les dépendances :
 
-    bower install
+    bower install // Voir la section suivante : "Note importante !"
 
 4/ Intégrer les scripts dans cet ordre :
 
         <script src="lib/vexflow/releases/vexflow-debug.js" defer></script>
         <script src="lib/abdmob/x2js/xml2json.min.js" defer></script>
         <script src="lib/dwaps-partition/dist/dbp.js" defer></script>
+
+## Note importante !
+
+La dépendance *x2js* utilisée dans ce projet ne se charge pas correctement lors de l'utilisation de la commande `bower install`.
+En lisant le fichier de configuration bower.json, bower ne trouve pas le paquet dans sa base de données et stoppe l'exécution de la commande.
+
+La solution consiste à supprimer la ligne `"abdmob/x2js": "x2js#^1.2.0"` de la liste des dépendances,
+et de relancer la commande `bower install`.
+Ensuite il faut installer *x2js* en le nommant : `bower install x2js`.
 
 ---
 
