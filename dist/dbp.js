@@ -24,7 +24,7 @@
 
 	var options = {
 
-		debugMode: true, // autorise ou non le chargement des dépendances minifiées
+		debugMode: false, // autorise ou non le chargement des dépendances minifiées
 
 		use:
 		{
@@ -146,39 +146,45 @@
 		{
 			genererScripts( true );
 
-			// Il faut laisser le temps aux dépendances de se charger correctement...
-			setTimeout(
-				function()
-				{
-					init( src, stringPart );
-				},
-				200
-			);
+			if( this.firstStart )
+			{
+				// Il faut laisser le temps aux dépendances de se charger correctement...
+				setTimeout(
+					function()
+					{
+						init( src, stringPart );
+					},
+					200
+				);	
+			}
 		}
 		else // Si non renseigné, on va chercher la partition via Ajax
 		{
 			genererScripts( false );
 
-			var req = new XMLHttpRequest();
-			req.open('GET', options.default.resources+ "/" + src + "msp.xml");
-
-			req.onprogress = function()
+			if( this.firstStart )
 			{
-				console.log( "Chargement de la partition..." );
-			};
+				var req = new XMLHttpRequest();
+				req.open('GET', options.default.resources+ "/" + src + "msp.xml");
 
-			req.onload = function()
-			{
-				setTimeout(
-					function()
-					{
-						init( src, req.responseText );
-					},
-					200
-				);
-			};
+				req.onprogress = function()
+				{
+					console.log( "Chargement de la partition..." );
+				};
 
-			req.send();
+				req.onload = function()
+				{
+					setTimeout(
+						function()
+						{
+							init( src, req.responseText );
+						},
+						200
+					);
+				};
+
+				req.send();
+			}			
 		}
 
 		// Resizing...
@@ -225,6 +231,21 @@
 				if( scripts[ i ].src.match( "dwaps-partition" ) )
 					scriptDBP = scripts[ i ];
 			}
+
+			// Capture de l'attribut dwaps-debug de la balise script chargeant dbp
+			var dwapsDebug = scriptDBP.getAttribute( "dwaps-debug" );
+			if( dwapsDebug == "true" || dwapsDebug == "false" )
+			{
+				options.debugMode = dwapsDebug === 'true';
+			}
+			else
+			{
+				console.log( "Absence de l'attribut dwaps-debug ou valeur mal renseignée !" );
+				console.log( "Le chargement de dwaps-partition a été stoppé..." );
+				THIS.firstStart = false;
+				return;
+			}
+
 
 			if( !scriptX2JS )
 			{
