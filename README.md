@@ -26,11 +26,9 @@ _Deux possibilités d'usage :_
 
     bower install // Voir la section suivante : "Note importante !"
 
-4/ Intégrer les scripts dans cet ordre :
-
-        <script src="lib/vexflow/releases/vexflow-debug.js" defer></script>
-        <script src="lib/abdmob/x2js/xml2json.min.js" defer></script>
-        <script src="lib/dwaps-partition/dist/dbp.js" defer></script>
+4/ Intégrer le script suivant sans oublier l'attribut dwaps-debug (permet d'activer/désactiver le chargement minifié des dépendances) :
+        
+    <script src="lib/dwaps-partition/dist/dbp.js" dwaps-debug="false"></script>
 
 ## Note importante !
 
