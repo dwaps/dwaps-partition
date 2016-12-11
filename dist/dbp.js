@@ -24,8 +24,6 @@
 
 	var options = {
 
-		debugMode: false, // autorise ou non le chargement des dépendances minifiées
-
 		use:
 		{
 			angular: true
@@ -236,7 +234,7 @@
 			var dwapsDebug = scriptDBP.getAttribute( "dwaps-debug" );
 			if( dwapsDebug == "true" || dwapsDebug == "false" )
 			{
-				options.debugMode = dwapsDebug === 'true';
+				dwapsDebug = dwapsDebug === 'true';
 			}
 			else
 			{
@@ -253,7 +251,7 @@
 				scriptX2JS = document.createElement( "script" );
 				scriptX2JS.id = "scriptX2JS";
 
-				isDebug = options.debugMode ? "" : ".min"
+				isDebug = dwapsDebug ? "" : ".min"
 				scriptX2JS.src = options.default.location
 									+ "/dwaps-partition/lib/abdmob/x2js/xml2json"
 								+ isDebug + ".js";
@@ -275,7 +273,7 @@
 					document.removeChild( link );
 				}
 
-				isDebug = options.debugMode ? "debug" : "min"
+				isDebug = dwapsDebug ? "debug" : "min"
 				script.src = options.default.location
 								+ "/dwaps-partition/node_modules/vexflow/releases/vexflow-"
 								+ isDebug + ".js";
