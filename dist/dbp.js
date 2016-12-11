@@ -6,7 +6,7 @@
 
 // PROBLEMES A REGLER !!!!!!!!!!!!!
 // 
-// l. 998
+// l. 1036
 // La génération de la clé de Fa en vextab doit se faire APRES l'entière génération de la clé de Sol
 // Ceci un tour chacun
 // 
@@ -920,9 +920,9 @@
 
 				var
 					tabMes = this.responsive ? this.mesDynamicPart : this.mesStaticPart,
-					cptMes = 0
+					cptMes = 0,
+					buildFa = false
 				;
-
 
 				if( tabMes.length > 0 && !this.manualMode )
 				{
@@ -1031,12 +1031,15 @@
 
 									}
 								}
-								else // Construction des mesures grâce à VexTab
+								else if( i <= 6 ) // Construction des mesures grâce à VexTab
 								{
 									if( THIS.NB_PORTEES_SYSTEME == 2 )
 									{
-										if( i%2 == 0 && i <= 4 )
-										{										
+										if( i%2 == 0 ) // Clef de SOl
+										{
+											console.log( "Clef de Sol" )
+											console.log( "Mesure " + (cptMes+1) )
+
 											if( m.firstOnNewSystem )
 											{
 												if( i != 0)
@@ -1047,29 +1050,43 @@
 
 													genererPhrases(
 														true,
-														PHRASE_CLE_SOL,
+														PHRASE,
 														cptMes
 													);
 
-													editPart( PHRASE_CLE_SOL );
+													editPart( PHRASE.clef_sol );
+													console.log( PHRASE.clef_sol );
+													console.log("\n")
+													PHRASE.clef_sol = "notes ";
+
+													buildFa = true;
 												}
 											}
 										}
-										else if( i <= 4 ) // Clef de Fa
-										{										
-											if( i > 0 && tabMes[ i-1 ].firstOnNewSystem )
+										else // Clef de Fa
+										{
+											console.log( "Clef de Fa" )
+											console.log( "Mesure " + (cptMes+1) )
+											console.log( buildFa )
+
+											if( buildFa )
 											{
+												console.log( "Mesure de départ (fa) " + tabMes[ cptMes - (THIS.NB_MAX_MEASURES*2) ].num )
+
 												THIS.clef = THIS.CLE_FA;
 												reloadPart( false );
-												// editPart( INIT_STAVE );
+												editPart( INIT_STAVE );
 
-												// genererPhrases(
-												// 	true,
-												// 	PHRASE_CLE_FA,
-												// 	cptMes
-												// );
+												genererPhrases(
+													false,
+													PHRASE,
+													(cptMes-1) - (THIS.NB_MAX_MEASURES*2)
+												);
 
-												// editPart( PHRASE_CLE_FA );
+												editPart( PHRASE.clef_fa );
+												console.log( PHRASE.clef_fa );
+												PHRASE.clef_fa = "notes ";
+												buildFa = false;
 											}
 										}
 
@@ -1141,8 +1158,10 @@
 					SPACE_SYSTEM_OUT = "options space=" + 100;
 					MARGIN_TOP = "options space=" + 20;
 					MARGIN_BOTTOM = "options space=" + 20;
-					PHRASE_CLE_SOL = "notes ";
-					PHRASE_CLE_FA = "notes ";
+					PHRASE = {
+						clef_sol: "notes ",
+						clef_fa: "notes "
+					},
 					CHORDS = "text ";
 					TEXT = "text ++," + ".10" + ",.font=Arial-12-normal,";
 				}
@@ -1219,7 +1238,7 @@
 						basse: [],
 						sansVoix: []
 					},
-					mesFromVF = phrase = param1, // param1 est tantôt la mes tantôt la phrase vextab à remplir
+					mesFromVF = phraseVT = param1, // param1 est tantôt la mes tantôt la phrase vextab à remplir
 					mesFromPart =  indexMes = param2 // parm2 est tantôt la mes tantôt l'index de la dernière de la portée courante
 				;
 
@@ -1246,22 +1265,21 @@
 				}
 
 
-
-				if( phrase !== 'object' ) // Mode vextab
-				{					
-					PHRASE_CLE_SOL = PHRASE_CLE_FA = "notes ";
-					indexMes = THIS.NB_PORTEES_SYSTEME == 2 ? indexMes/2 : indexMes;
-
+				if( Object.keys( phraseVT ).length == 2 ) // Mode vextab
+				{
 					if( clefIsSol )
 					{
+						indexMes = THIS.NB_PORTEES_SYSTEME == 2 ? indexMes/2 : indexMes;
+
+						console.log( "clefIsSol " + clefIsSol )
 						for( var i = indexMes-THIS.NB_MAX_MEASURES; i < THIS.partition.systeme.portee1.length; i++ )
 						{
 							if( THIS.mesDynamicPart[ i ].lastOnOldSystem )
 								break;
 
 							// Si nouvelle mesure : barre de mesure
-							if( i!= indexMes-THIS.NB_MAX_MEASURES )
-								PHRASE_CLE_SOL += " | ";
+							if( i != indexMes-THIS.NB_MAX_MEASURES )
+								PHRASE.clef_sol += " | ";
 
 							// Parcours des notes de la mesure en cours
 							// => création de la phrase musicale
@@ -1330,19 +1348,19 @@
 								}
 							);
 
-							PHRASE_CLE_SOL += phrase;
+							PHRASE.clef_sol += phrase;
 						}
 					}
 					else
 					{
-						for( var i = indexMes-THIS.NB_MAX_MEASURES; i < THIS.partition.systeme.portee2.length; i++ )
+						for( var i = indexMes; i < THIS.partition.systeme.portee2.length; i++ )
 						{
 							if( THIS.mesDynamicPart[ i ].lastOnOldSystem )
 								break;
 
 							// Si nouvelle mesure : barre de mesure
-							if( i!= indexMes-THIS.NB_MAX_MEASURES )
-								PHRASE_CLE_FA += " | ";
+							if( i != indexMes )
+								PHRASE.clef_fa += " | ";
 
 							// Parcours des notes de la mesure en cours
 							// => création de la phrase musicale
@@ -1411,7 +1429,7 @@
 								}
 							);
 
-							PHRASE_CLE_FA += phrase;
+							PHRASE.clef_fa += phrase;
 						}
 					}
 				}
