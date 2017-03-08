@@ -16,28 +16,28 @@ _Deux possibilités d'usage :_
 
 1/ Cloner le repository
 
-    git clone https://gogs.timothee.fr/timothee/apym
+    `git clone https://gogs.timothee.fr/timothee/apym`
 
 2/ Se placer dans le répertoire du projet
 
-    cd apym
+    `cd apym`
 
 3/ Installer les dépendances :
 
-    bower install // Voir la section suivante : "Note importante !"
+	`npm install`
+    `bower install`
+	`bower install x2js // voir section Remarque ci-dessous` 
+
+	(en une seule ligne : `npm i && bower i && bower i x2js`)
+
 
 4/ Intégrer le script suivant sans oublier l'attribut dwaps-debug (permet d'activer/désactiver le chargement minifié des dépendances) :
         
-    <script src="lib/dwaps-partition/dist/dbp.js" dwaps-debug="false"></script>
+    `<script src="lib/dwaps-partition/dist/dbp.js" dwaps-debug="false"></script>`
 
-## Note importante !
+## Remarque
 
-La dépendance *x2js* utilisée dans ce projet ne se charge pas correctement lors de l'utilisation de la commande `bower install`.
-En lisant le fichier de configuration bower.json, bower ne trouve pas le paquet dans sa base de données et stoppe l'exécution de la commande.
-
-La solution consiste à supprimer la ligne `"abdmob/x2js": "x2js#^1.2.0"` de la liste des dépendances,
-et de relancer la commande `bower install`.
-Ensuite il faut installer *x2js* en le nommant : `bower install x2js`.
+La dépendance *x2js* ne peut malheureusement pas être installé de façon automatique par bower. C'est pour cette raison que l'installation est décrite plus haut en mode manuel.
 
 ---
 
