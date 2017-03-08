@@ -1439,12 +1439,12 @@
 				else // SI MODE VEXFLOW
 				{
 					// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
-					if( Array.isArray( mesFromPart.note ) && mesFromVF === 'object' )
+					if( Array.isArray( mesFromPart.note ) ) // && mesFromVF === 'object' )
 					{
 						mesFromPart.note.forEach(
 							function( n, i )
 							{
-								// if( mesFromPart._number == "13" )
+								// if( mesFromPart._number == "2" )
 								// {
 									notes.push({
 										numMes: parseInt( mesFromPart._number ),
@@ -1475,14 +1475,14 @@
 									// console.log( "Notes récupérées :" )
 									// console.log( notes )
 
-								// }
-							}
+								}
+							// }
 						);
 					}
 					else
 					{
-						if( mesFromPart._number == "1" )
-						{
+						// if( mesFromPart._number == "1" )
+						// {
 							var n = mesFromPart.note;
 
 							notes.push({
@@ -1512,7 +1512,7 @@
 
 							// console.log( "Note récupérée :" )
 							// console.log( notes )
-						}
+						// }
 					}
 
 
