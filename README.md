@@ -34,7 +34,7 @@ En une seule ligne : `npm i && bower i && bower i x2js`
 
 4/ Intégrer le script suivant sans oublier l'attribut dwaps-debug (permet d'activer/désactiver le chargement minifié des dépendances) :
         
-    `<script src="lib/dwaps-partition/dist/dbp.js" dwaps-debug="false"></script>`
+    <script src="lib/dwaps-partition/dist/dbp.js" dwaps-debug="false"></script>
 
 ## Remarque
 
