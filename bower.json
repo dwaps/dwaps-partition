@@ -2,6 +2,7 @@
   "name": "dwaps-partition",
   "version": "1.0.0",
   "license": "GNU GPL 3",
+  "description": "Editeur et gestionnaire de partition en ligne",
   "main": "./dist/dbp.js",
   "ignore": [],
   "dependencies": {
