@@ -17,19 +17,19 @@ Deux possibilités d'usage :
 
 1/ Cloner le repository
 
-    `git clone https://gogs.timothee.fr/timothee/apym`
+    git clone https://gogs.timothee.fr/timothee/apym
 
 2/ Se placer dans le répertoire du projet
 
-    `cd apym`
+    cd apym
 
 3/ Installer les dépendances :
 
-	`npm install`
-    `bower install`
-	`bower install x2js // voir section Remarque ci-dessous` 
+	npm install
+    bower install
+	bower install x2js // voir section Remarque ci-dessous 
 
-	(en une seule ligne : `npm i && bower i && bower i x2js`)
+En une seule ligne : `npm i && bower i && bower i x2js`
 
 
 4/ Intégrer le script suivant sans oublier l'attribut dwaps-debug (permet d'activer/désactiver le chargement minifié des dépendances) :
