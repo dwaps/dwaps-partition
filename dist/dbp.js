@@ -547,7 +547,7 @@
 		{
 			var opt = options ? options : this.options;
 
-			this.initObject( options, src, reload );	
+			this.initObject( options, src, reload );
 
 			if( src instanceof HTMLElement )
 			{
@@ -904,8 +904,8 @@
 				return;
 			}
 
-			 // Deuxième appel (récursion) : création de la mesure VF
-			 // ou premier appel : création de la mesure VF
+			 // Premier appel : création de la mesure VF
+			 // ou deuxième appel (récursion) : création de la mesure VF
 			else
 			{
 				if( parseInt( mesJSON.offsetX )  )  offsetX = mesJSON.offsetX;
@@ -926,7 +926,8 @@
 
 				if( tabMes.length > 0 && !this.manualMode )
 				{
-					if( !this.tag ){
+					if( !this.tag ) // Si on est en mode VexTab
+					{
 
 						// INIT PART VEXTAB
 						reloadPart( true );
@@ -988,7 +989,7 @@
 												}
 											}
 											else
-											{							
+											{					
 												genererPhrases(
 													true,
 													mesure,
@@ -1238,8 +1239,8 @@
 						basse: [],
 						sansVoix: []
 					},
-					mesFromVF = phraseVT = param1, // param1 est tantôt la mes tantôt la phrase vextab à remplir
-					mesFromPart =  indexMes = param2 // parm2 est tantôt la mes tantôt l'index de la dernière de la portée courante
+					mesFromVF = phraseVT = param1, // param1 est tantôt la mes vide tantôt la phrase vextab à remplir
+					mesFromPart =  indexMes = param2 // parm2 est tantôt la mes avec notes tantôt l'index de la dernière de la portée courante
 				;
 
 				// Récupération de l'harmonie
@@ -1264,8 +1265,8 @@
 					THIS.chords.push( [ mesFromPart.harmony.root[ "root-step" ] ] );
 				}
 
-
-				if( Object.keys( phraseVT ).length == 2 ) // Mode vextab
+				// SI MODE VEXTAB
+				if( Object.keys( phraseVT ).length == 2 )
 				{
 					if( clefIsSol )
 					{
@@ -1435,7 +1436,7 @@
 				}
 
 
-				else // Mode VexFlow
+				else // SI MODE VEXFLOW
 				{
 					// RECUPERATION DES NOTES ET DES PARAMS ASSOCIES
 					if( Array.isArray( mesFromPart.note ) && mesFromVF === 'object' )
@@ -1480,8 +1481,8 @@
 					}
 					else
 					{
-						// if( mesFromPart._number == "2" )
-						// {
+						if( mesFromPart._number == "1" )
+						{
 							var n = mesFromPart.note;
 
 							notes.push({
@@ -1511,7 +1512,7 @@
 
 							// console.log( "Note récupérée :" )
 							// console.log( notes )
-						// }
+						}
 					}
 
 
