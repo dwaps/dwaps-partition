@@ -8,8 +8,8 @@ _(Framework réalisé à l'aide de la librairie [vexflow] (https://github.com/0x
 
 _Création, affichage et gestion de partitions de musique._
 
-_Deux possibilités d'usage :
-_
+Deux possibilités d'usage :
+
 1. Création à partir de zéro.
 2. Création à partir du format musicxml (dans ce cas, deux mode d'affichage : statique ou responsive).
 
