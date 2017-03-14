@@ -42,4 +42,4 @@ La dépendance *x2js* ne peut malheureusement pas être installé de façon auto
 
 ---
 
-[® DWAPS Formation] (http://dwaps.fr "Michael Cornillon")
+[® DWAPS Formation - Michael Cornillon](http://dwaps.fr "DWAPS")
